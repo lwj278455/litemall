@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.linlinjava.litemall.db.dao.LitemallDiscountMapper">
+
+    <resultMap id="BaseResultMap" type="org.linlinjava.litemall.db.domain.LitemallDiscount">
+        <id column="id"  jdbcType="INTEGER" property="id" />
+        <result column="discount_name" jdbcType="VARCHAR" property="discountName"/>
+        <result column="discount_price" jdbcType="DECIMAL" property="discountPrice"/>
+        <result column="discount_tag" jdbcType="DECIMAL" property="discountTag"/>
+        <result column="add_time" jdbcType="TIMESTAMP" property="addTime"/>
+        <result column="use_time" jdbcType="TIMESTAMP" property="useTime"/>
+        <result column="past_time" jdbcType="TIMESTAMP" property="pastTime"/>
+        <result column="userid" jdbcType="INTEGER" property="userId"/>
+        <result column="deleted" jdbcType="INTEGER" property="deleted"/>
+    </resultMap>
+
+    <select id="selectListByUserId" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        select * from  litemall_discount where deleted=0
+        <if test="userId != null">
+            and userid = ${userId}
+        </if>
+    </select>
+
+    <select id="selectEntityByDiscountId" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        select * from  litemall_discount
+        <where>
+            <if test="discountId != null">
+              id = ${discountId}
+            </if>
+        </where>
+    </select>
+
+    <update id="delByDiscountId" parameterType="java.lang.Integer">
+        update litemall_discount set deleted=1,use_time=now()  where id=${id}
+    </update>
+
+    <insert id="add" parameterType="org.linlinjava.litemall.db.domain.LitemallDiscount">
+       insert into litemall_discount(discount_name,discount_tag,add_time,userid) values(
+            '${discount.discountName}','${discount.discountTag}','${discount.addtime}',${discount.userid}
+       )
+    </insert>
+</mapper>
