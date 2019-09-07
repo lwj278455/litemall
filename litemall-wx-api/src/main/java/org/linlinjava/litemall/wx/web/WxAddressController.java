@@ -46,9 +46,9 @@ public class WxAddressController extends GetRegionService {
     @Autowired
     private LitemallUserService userService;
 
+
     /**
      * 用户收货地址列表
-     *
      * @param
      * @return 收货地址列表
      */

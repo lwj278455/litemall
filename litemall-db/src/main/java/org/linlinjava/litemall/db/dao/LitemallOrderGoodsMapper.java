@@ -21,6 +21,7 @@ public interface LitemallOrderGoodsMapper {
      */
     Integer[] selectGoodsByOrderId(Short[] orderIds);
 
+    List<LitemallOrderGoods> findListByOrderId(Short[] orderIds);
 
     /**
      * 根据订单id获取主键ID

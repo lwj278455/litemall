@@ -147,7 +147,7 @@ public class WxOrderService {
             orderVo.put("id", o.getId());
             orderVo.put("orderSn", o.getOrderSn());
             orderVo.put("actualPrice", o.getActualPrice());
-            orderVo.put("orderStatusText", OrderUtil.orderStatusText(o));
+            orderVo.put("orderStatusText",o.getOrderStatus());
             orderVo.put("handleOption", OrderUtil.build(o));
 
 
@@ -159,11 +159,11 @@ public class WxOrderService {
                 orderGoodsVo.put("goodsName", orderGoods.getGoodsName());
                 orderGoodsVo.put("number", orderGoods.getNumber());
                 orderGoodsVo.put("picUrl", orderGoods.getPicUrl());
+                orderGoodsVo.put("price", orderGoods.getPrice());
                 orderGoodsVo.put("specifications", orderGoods.getSpecifications());
                 orderGoodsVoList.add(orderGoodsVo);
             }
             orderVo.put("goodsList", orderGoodsVoList);
-
             orderVoList.add(orderVo);
         }
 
@@ -181,9 +181,9 @@ public class WxOrderService {
         if (userId == null) {
             return ResponseUtil.unlogin();
         }
-
         // 订单信息
         LitemallOrder order = orderService.findById(orderId);
+
         if (null == order) {
             return ResponseUtil.fail(ORDER_UNKNOWN, "订单不存在");
         }
@@ -198,13 +198,15 @@ public class WxOrderService {
         orderVo.put("mobile", order.getMobile());
         orderVo.put("address", order.getAddress());
         orderVo.put("goodsPrice", order.getGoodsPrice());
-        orderVo.put("couponPrice", order.getCouponPrice());
+        orderVo.put("integral_price", order.getIntegralPrice());
         orderVo.put("freightPrice", order.getFreightPrice());
         orderVo.put("actualPrice", order.getActualPrice());
-        orderVo.put("orderStatusText", OrderUtil.orderStatusText(order));
+        orderVo.put("orderStatusText", order.getOrderStatus());
         orderVo.put("handleOption", OrderUtil.build(order));
         orderVo.put("expCode", order.getShipChannel());
         orderVo.put("expNo", order.getShipSn());
+        orderVo.put("coupon_price",order.getCouponPrice());
+
 
         List<LitemallOrderGoods> orderGoodsList = orderGoodsService.queryByOid(order.getId());
 
@@ -292,7 +294,7 @@ public class WxOrderService {
 
         BigDecimal integralprice = BigDecimal.ZERO; //积分抵扣价格
         if (userIntegr!=null){//判断是否使用积分
-            Double integral =  userIntegr*0.5;
+            Double integral =  userIntegr*0.01;
             integralprice = new BigDecimal(integral.toString());
             LitemallUser user = userService.findById(1);
             user.setUserIntegr(user.getUserIntegr()-userIntegr);
@@ -326,8 +328,8 @@ public class WxOrderService {
         LitemallOrder order = new LitemallOrder();
         order.setUserId(userId);//用户id
         order.setConsignee(address.getName());
-        order.setOrderSn((String) OrderCodeFactory.getOrderCode((long) 1));//订单编号
-        order.setMobile(user.getMobile());//电话号码
+        order.setOrderSn(PayUtil.create_timestamp());//订单编号
+        order.setMobile(address.getTel());//电话号码
         order.setAddress(addressDetail);//订单地址
         order.setGoodsPrice(goodsprice);//商品价格
         order.setIntegralPrice(integralprice);
@@ -650,26 +652,6 @@ public class WxOrderService {
                 return WxPayNotifyResponse.fail("更新数据已失效");
             }
         }
-
-
-        //TODO 发送邮件和短信通知，这里采用异步发送
-        // 订单支付成功以后，会发送短信给用户，以及发送邮件给管理员
-        notifyService.notifyMail("新订单通知", order.toString());
-        // 这里微信的短信平台对参数长度有限制，所以将订单号只截取后6位
-        notifyService.notifySmsTemplateSync(order.getMobile(), NotifyType.PAY_SUCCEED, new String[]{orderSn.substring(8, 14)});
-
-        // 请依据自己的模版消息配置更改参数
-        String[] parms = new String[]{
-                order.getOrderSn(),
-                order.getOrderPrice().toString(),
-                DateTimeUtil.getDateTimeDisplayString(order.getAddTime()),
-                order.getConsignee(),
-                order.getMobile(),
-                order.getAddress()
-        };
-
-        notifyService.notifyWxTemplate(result.getOpenid(), NotifyType.PAY_SUCCEED, parms, "pages/index/index?orderId=" + order.getId());
-
         return WxPayNotifyResponse.success("处理成功!");
     }
     /**
@@ -840,42 +822,48 @@ public class WxOrderService {
         }
 
         Integer orderGoodsId = JacksonUtil.parseInteger(body, "orderGoodsId");
+
         if (orderGoodsId == null) {
             return ResponseUtil.badArgument();
         }
+
         LitemallOrderGoods orderGoods = orderGoodsService.findById(orderGoodsId);
         if (orderGoods == null) {
             return ResponseUtil.badArgumentValue();
         }
+
         Integer orderId = orderGoods.getOrderId();
         LitemallOrder order = orderService.findById(orderId);
         if (order == null) {
             return ResponseUtil.badArgumentValue();
         }
+
         Short orderStatus = order.getOrderStatus();
         if (!OrderUtil.isConfirmStatus(order) && !OrderUtil.isAutoConfirmStatus(order)) {
             return ResponseUtil.fail(ORDER_INVALID_OPERATION, "当前商品不能评价");
         }
+
         if (!order.getUserId().equals(userId)) {
             return ResponseUtil.fail(ORDER_INVALID, "当前商品不属于用户");
         }
+
         Integer commentId = orderGoods.getComment();
         if (commentId == -1) {
             return ResponseUtil.fail(ORDER_COMMENT_EXPIRED, "当前商品评价时间已经过期");
         }
+
         if (commentId != 0) {
             return ResponseUtil.fail(ORDER_COMMENTED, "订单商品已评价");
         }
 
         String content = JacksonUtil.parseString(body, "content");
-        Integer star = JacksonUtil.parseInteger(body, "star");
-        if (star == null || star < 0 || star > 5) {
+        if (StringUtils.isEmpty(content)) {
             return ResponseUtil.badArgumentValue();
         }
         Boolean hasPicture = JacksonUtil.parseBoolean(body, "hasPicture");
         List<String> picUrls = JacksonUtil.parseStringList(body, "picUrls");
-        if (hasPicture == null || !hasPicture) {
-            picUrls = new ArrayList<>(0);
+        if (picUrls == null ) {
+            hasPicture=false;
         }
 
         // 1. 创建评价
@@ -883,7 +871,6 @@ public class WxOrderService {
         comment.setUserId(userId);
         comment.setType((byte) 0);
         comment.setValueId(orderGoods.getGoodsId());
-        comment.setStar(star.shortValue());
         comment.setContent(content);
         comment.setHasPicture(hasPicture);
         comment.setPicUrls(picUrls.toArray(new String[]{}));
@@ -898,6 +885,7 @@ public class WxOrderService {
         if (commentCount > 0) {
             commentCount--;
         }
+
         order.setComments(commentCount);
         orderService.updateWithOptimisticLocker(order);
 

@@ -1,5 +1,6 @@
 package org.linlinjava.litemall.wx.web;
 
+import io.swagger.models.auth.In;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tomcat.jni.BIOCallback;
@@ -32,14 +33,16 @@ public class WxOrderController {
     /**
      * 订单列表
      *
-     * @param userId   用户ID
-     * @param showType 订单信息
+     * @param userId   用户ID @LoginUser Integer userId,
+     * @param showType 订单信息@LoginUser Integer userId,
      * @param page     分页页数
-     * @param limit    分页大小
+     * @param limit    分页大小  @LoginUser Integer userId,
      * @return 订单列表@LoginUser Integer userId,
      */
     @GetMapping("list")
-    public Object list(@RequestParam(defaultValue = "0") Integer showType,
+    public Object list(
+
+                        @RequestParam(defaultValue = "0") Integer showType,
                        @RequestParam(defaultValue = "1") Integer page,
                        @RequestParam(defaultValue = "10") Integer limit,
                        @Sort @RequestParam(defaultValue = "add_time") String sort,
@@ -49,15 +52,15 @@ public class WxOrderController {
 
 
     /**
-     * 订单详情
-     *
-     * @param userId  用户ID@LoginUser Integer userId
+     * 订单详情@LoginUser Integer userId,
+     *@LoginUser Integer userId,@LoginUser Integer userId,
+     * @param userId  用户ID@LoginUser Integer userId,
      * @param orderId 订单ID
      * @return 订单详情
      */
     @GetMapping("detail")
-    public Object detail(@LoginUser Integer userId,@NotNull Integer orderId) {
-        return wxOrderService.detail(userId, orderId);
+    public Object detail( @NotNull Integer orderId) {
+        return wxOrderService.detail(1, orderId);
     }
 
     /**
@@ -81,6 +84,7 @@ public class WxOrderController {
         Object discount = wxOrderService.isDiscounts(retailprice);
         return discount;
     }
+
     /**
      * 取消订单
      *
@@ -126,6 +130,7 @@ public class WxOrderController {
      * @param userId 用户ID
      * @param body   订单信息，{ orderId：xxx }
      * @return 订单退款操作结果
+     *
      */
     @PostMapping("refund")
     public Object refund(@LoginUser Integer userId, @RequestBody String body) {
@@ -174,13 +179,13 @@ public class WxOrderController {
     /**
      * 评价订单商品
      *
-     * @param userId 用户ID
+     * @param userId 用户ID@LoginUser Integer userId,
      * @param body   订单信息，{ orderId：xxx }
      * @return 订单操作结果
      */
     @PostMapping("comment")
-    public Object comment(@LoginUser Integer userId, @RequestBody String body) {
-        return wxOrderService.comment(userId, body);
+    public Object comment(@RequestBody String body) {
+        return wxOrderService.comment(1, body);
     }
 
 }

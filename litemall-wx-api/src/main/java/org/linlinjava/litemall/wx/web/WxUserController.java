@@ -3,9 +3,11 @@ package org.linlinjava.litemall.wx.web;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.linlinjava.litemall.core.util.ResponseUtil;
+import org.linlinjava.litemall.db.domain.LitemallUser;
 import org.linlinjava.litemall.db.service.LitemallOrderService;
 import org.linlinjava.litemall.db.service.LitemallUserService;
 import org.linlinjava.litemall.wx.annotation.LoginUser;
+import org.linlinjava.litemall.wx.util.BASE64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,7 +43,8 @@ public class WxUserController {
             return ResponseUtil.unlogin();
         }
         Map<Object, Object> data = new HashMap<Object, Object>();
-        data.put("user", userService.findById(userId));
+       LitemallUser user = userService.findById(userId);
+        data.put("user",user);
         return ResponseUtil.ok(data);
     }
 }

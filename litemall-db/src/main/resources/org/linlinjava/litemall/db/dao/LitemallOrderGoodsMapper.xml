@@ -588,4 +588,12 @@
       and goods_id = ${goodsId}
     </if>
   </select>
+
+  <select id="findListByOrderId"  resultMap="BaseResultMap">
+    select <include refid="Base_Column_List"></include>
+    from litemall_order_goods where order_id in
+    <foreach collection="array" item="orderid" open="(" separator="," close=")">
+      ${orderid}
+    </foreach>
+  </select>
 </mapper>

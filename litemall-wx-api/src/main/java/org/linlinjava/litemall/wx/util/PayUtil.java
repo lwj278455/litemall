@@ -5,6 +5,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.linlinjava.litemall.db.domain.LitemallUser;
 import org.linlinjava.litemall.db.service.LitemallUserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -20,6 +21,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+@Component
 public class PayUtil {
     @Autowired
     private LitemallUserService userService;
@@ -82,9 +84,8 @@ public class PayUtil {
 
 
 
-    public  Object pay(double price, Integer userId,HttpServletRequest request){
+    public   Object pay(double price, Integer userId,HttpServletRequest request){
         LitemallUser user = userService.findById(userId);
-        price=0.01;
         String productName="SweetCity";
         int number = (int)((Math.random()*9)*1000);//随机数
         DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");//时间
@@ -98,8 +99,7 @@ public class PayUtil {
         orderEntity.setDevice_info("WEB");
         orderEntity.setTrade_type("JSAPI");
         orderEntity.setOut_trade_no(orderNumber);
-        double pr=  price*100;
-        orderEntity.setTotal_fee((int) pr);
+        orderEntity.setTotal_fee((int)(price*100));
         orderEntity.setOpenid(openId);
         //接收支付结果的地址
         orderEntity.setNotify_url(WxAuthorization.NOTIFY_URL);
@@ -107,7 +107,6 @@ public class PayUtil {
         String uuid = UUID.randomUUID().toString().replace("-", "");
         orderEntity.setNonce_str(uuid);
         //生成签名
-
         String sign = null;
         try {
             sign = PayUtil.generateSignature(orderEntity);

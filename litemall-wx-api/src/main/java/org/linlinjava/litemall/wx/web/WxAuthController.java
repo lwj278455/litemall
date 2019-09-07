@@ -21,6 +21,7 @@ import org.linlinjava.litemall.wx.dto.UserInfo;
 import org.linlinjava.litemall.wx.service.CaptchaCodeManager;
 import org.linlinjava.litemall.wx.service.UserTokenManager;
 import org.linlinjava.litemall.core.util.IpUtil;
+import org.linlinjava.litemall.wx.util.BASE64;
 import org.linlinjava.litemall.wx.util.WxAuthorization;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
@@ -137,7 +138,11 @@ public class WxAuthController {
             LitemallUser litemallUser = new LitemallUser();
             litemallUser.setGender(userInfo.getSex());
             litemallUser.setLastLoginTime(LocalDateTime.now());
-            litemallUser.setNickname(userInfo.getNickName());
+            try {
+                litemallUser.setNickname(BASE64.decryptBASE64(userInfo.getNickName()).toString());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             litemallUser.setAvatar(userInfo.getHeadimgurl());
             litemallUser.setWeixinOpenid(userInfo.getOpenid());
             litemallUser.setunionid(userInfo.getUnionid());

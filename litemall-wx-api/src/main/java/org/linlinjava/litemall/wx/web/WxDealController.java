@@ -8,8 +8,11 @@ import org.linlinjava.litemall.db.service.LitemallOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import sun.misc.Request;
+
+import java.util.List;
 
 /**
  *
@@ -33,5 +36,9 @@ public class WxDealController {
         order.setDealStatus((short)1);
         orderService.updateWithOptimisticLocker(order);
         return ResponseUtil.ok(orderId);
+    }
+    @GetMapping("/sellList")
+    public Object sellList(@RequestParam("dealStaus") Integer dealStaus){
+        return orderService.sellList(1,dealStaus);
     }
 }

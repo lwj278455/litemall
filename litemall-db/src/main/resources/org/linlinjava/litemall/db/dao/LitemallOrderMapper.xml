@@ -728,4 +728,11 @@
   <select id="selectByDealStatus" parameterType="INTEGER" resultType="Short">
         select id from litemall_order where deal_status = ${dealstatus}
   </select>
+
+  <select id="sellListBydealStaus" resultMap="BaseResultMap">
+        select * from litemall_order where
+        <if test="dealstaus!=null and dealstaus!=''">
+            deal_status = ${dealstaus}
+        </if>
+  </select>
 </mapper>

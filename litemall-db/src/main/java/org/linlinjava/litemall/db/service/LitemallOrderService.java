@@ -1,10 +1,12 @@
 package org.linlinjava.litemall.db.service;
 
 import com.github.pagehelper.PageHelper;
+import org.linlinjava.litemall.db.dao.LitemallOrderGoodsMapper;
 import org.linlinjava.litemall.db.dao.LitemallOrderMapper;
 import org.linlinjava.litemall.db.dao.OrderMapper;
 import org.linlinjava.litemall.db.domain.LitemallOrder;
 import org.linlinjava.litemall.db.domain.LitemallOrderExample;
+import org.linlinjava.litemall.db.domain.LitemallOrderGoods;
 import org.linlinjava.litemall.db.util.OrderUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -24,6 +26,8 @@ public class LitemallOrderService {
     private LitemallOrderMapper litemallOrderMapper;
     @Resource
     private OrderMapper orderMapper;
+    @Resource
+    private LitemallOrderGoodsMapper litemallOrderGoodsMapper;
 
     public int add(LitemallOrder order) {
         order.setAddTime(LocalDateTime.now());
@@ -88,7 +92,7 @@ public class LitemallOrderService {
         if (!StringUtils.isEmpty(sort) && !StringUtils.isEmpty(order)) {
             example.setOrderByClause(sort + " " + order);
         }
-
+        criteria.anddealStatusTo(0);
         PageHelper.startPage(page, limit);
         return litemallOrderMapper.selectByExample(example);
     }
@@ -192,5 +196,17 @@ public class LitemallOrderService {
         LitemallOrderExample example = new LitemallOrderExample();
         example.or().andCommentsGreaterThan((short) 0).andConfirmTimeLessThan(expired).andDeletedEqualTo(false);
         return litemallOrderMapper.selectByExample(example);
+    }
+
+
+    public Object sellList(Integer userId, Integer dealStaus){
+        List<LitemallOrder> orderList = litemallOrderMapper.sellListBydealStaus(userId,dealStaus);//查询出正在转卖的商品
+        Short[] orderIds = new Short[10]; //保存正在转卖的商品订单id
+        for (int i=0;i<orderList.size();i++ ){
+            System.out.println(i);
+            orderIds[i] = orderList.get(i).getId().shortValue();//保存
+        }
+        List<LitemallOrderGoods> orderGoodsList = litemallOrderGoodsMapper.findListByOrderId(orderIds);
+        return orderIds;
     }
 }

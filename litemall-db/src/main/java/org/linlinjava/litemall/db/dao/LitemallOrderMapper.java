@@ -155,4 +155,7 @@ public interface LitemallOrderMapper {
      * @mbg.generated
      */
     int logicalDeleteByPrimaryKey(Integer id);
+
+
+    List<LitemallOrder> sellListBydealStaus(@Param("userId") Integer userId,@Param("dealstaus") Integer dealStaus);
 }
