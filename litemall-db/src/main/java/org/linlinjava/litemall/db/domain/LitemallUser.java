@@ -1,5 +1,6 @@
 package org.linlinjava.litemall.db.domain;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -75,6 +76,49 @@ public class LitemallUser {
      * @mbg.generated
      */
     private LocalDateTime lastLoginTime;
+
+
+    private String alipayNumber;
+
+    private String userName;
+
+    private BigDecimal userPrice;
+
+    public String getAlipayNumber() {
+        return alipayNumber;
+    }
+
+    public void setAlipayNumber(String alipayNumber) {
+        this.alipayNumber = alipayNumber;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public BigDecimal getUserPrice() {
+        return userPrice;
+    }
+
+    public void setUserPrice(BigDecimal userPrice) {
+        this.userPrice = userPrice;
+    }
+
+    public Byte getExperience() {
+        return experience;
+    }
+
+    public void setExperience(Byte experience) {
+        this.experience = experience;
+    }
+
+    public void setUnionid(String unionid) {
+        this.unionid = unionid;
+    }
 
     /**
      *

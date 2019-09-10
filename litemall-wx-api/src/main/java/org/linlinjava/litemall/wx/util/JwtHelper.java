@@ -25,7 +25,7 @@ public class JwtHelper {
 	static final String AUDIENCE = "MINIAPP";
 	
 	
-	public String createToken(Integer userId){
+	public  String createToken(Integer userId){
 		try {
 		    Algorithm algorithm = Algorithm.HMAC256(SECRET);
 		    Map<String, Object> map = new HashMap<String, Object>();
@@ -100,5 +100,4 @@ public class JwtHelper {
 		}
 		return cal.getTime();
 	}
-	
 }

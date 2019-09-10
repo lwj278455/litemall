@@ -15,9 +15,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.support.StandardMultipartHttpServletRequest;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -50,11 +54,18 @@ public class WxStorageController {
         return key;
     }
 
+    /**
+     * @param files
+     * @throws IOException
+     * @return,
+     */
     @PostMapping("/upload")
-    public Object upload(@RequestParam("file") MultipartFile file) throws IOException {
-        String originalFilename = file.getOriginalFilename();
-        LitemallStorage litemallStorage = storageService.store(file.getInputStream(), file.getSize(), file.getContentType(), originalFilename);
-        return ResponseUtil.ok(litemallStorage);
+    public Object upload(@RequestParam("files") MultipartFile files) throws IOException {
+
+        String originalFilename = files.getOriginalFilename();
+        LitemallStorage litemallStorage = storageService.store(files.getInputStream(), files.getSize(), files.getContentType(), originalFilename);
+
+        return ResponseUtil.ok(litemallStorage.getUrl());
     }
 
     /**

@@ -93,7 +93,7 @@ public class WxHomeController {
 
         Callable<List> brandListCallable = () -> brandService.query(0, SystemConfig.getBrandLimit());
 
-        Callable<List> hotGoodsListCall = () -> goodsService.queryByHot(0, SystemConfig.getNewLimit());
+        Callable<List> hotGoodsListCall = () -> goodsService.queryByHot(0, SystemConfig.getHotLimit());
         //交易厅商品
         Short[] order =  orderService.queryByDealStatus();
         Callable<List>   dealList=null;
@@ -123,7 +123,10 @@ public class WxHomeController {
             entity.put("newGoodsList", newGoodsListTask.get());
             entity.put("brandList", brandListTask.get());
             entity.put("hotList", hotGoodsListTask.get());
-            entity.put("dealList", dealListTask.get());
+            if (dealListTask!=null){
+                entity.put("dealList", dealListTask.get());
+            }
+
             //缓存数据
             HomeCacheManager.loadData(HomeCacheManager.INDEX, entity);
         } catch (Exception e) {

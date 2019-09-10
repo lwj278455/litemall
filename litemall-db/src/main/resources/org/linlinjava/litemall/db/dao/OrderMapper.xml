@@ -13,6 +13,9 @@
             <if test="order.orderSn != null">
                 order_sn = #{order.orderSn,jdbcType=VARCHAR},
             </if>
+            <if test="order.dealStatus != null">
+                deal_status = #{order.dealStatus,jdbcType=VARCHAR},
+            </if>
             <if test="order.orderStatus != null">
                 order_status = #{order.orderStatus,jdbcType=SMALLINT},
             </if>

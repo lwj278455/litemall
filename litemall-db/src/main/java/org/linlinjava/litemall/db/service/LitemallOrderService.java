@@ -8,6 +8,7 @@ import org.linlinjava.litemall.db.domain.LitemallOrder;
 import org.linlinjava.litemall.db.domain.LitemallOrderExample;
 import org.linlinjava.litemall.db.domain.LitemallOrderGoods;
 import org.linlinjava.litemall.db.util.OrderUtil;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -15,10 +16,7 @@ import javax.annotation.Resource;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 @Service
 public class LitemallOrderService {
@@ -28,16 +26,20 @@ public class LitemallOrderService {
     private OrderMapper orderMapper;
     @Resource
     private LitemallOrderGoodsMapper litemallOrderGoodsMapper;
-
+    @Autowired
+    private LitemallOrderGoodsService litemallOrderGoodsService;
+    @Autowired
+    private LitemallOrderService orderService;
     public int add(LitemallOrder order) {
         order.setAddTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
         return litemallOrderMapper.insertSelective(order);
     }
 
-    public Short[] queryByDealStatus(){
+    public Short[] queryByDealStatus() {
         return litemallOrderMapper.selectByDealStatus(1);
     }
+
     public int count(Integer userId) {
         LitemallOrderExample example = new LitemallOrderExample();
         example.or().andUserIdEqualTo(userId).andDeletedEqualTo(false);
@@ -94,6 +96,22 @@ public class LitemallOrderService {
         }
         criteria.anddealStatusTo(0);
         PageHelper.startPage(page, limit);
+        return litemallOrderMapper.selectByExample(example);
+    }
+
+
+    public List<LitemallOrder> queryByDeal(Integer userId, Integer dealStatus, Integer page, Integer limit,String sort, String order) {
+        LitemallOrderExample example = new LitemallOrderExample();
+        LitemallOrderExample.Criteria criteria = example.or();
+        criteria.andUserIdEqualTo(userId);
+        if (dealStatus != null) {
+            criteria.anddealStatusTo(dealStatus);
+        }
+        criteria.andDeletedEqualTo(false);
+        if (!StringUtils.isEmpty(sort) && !StringUtils.isEmpty(order)) {
+            example.setOrderByClause(sort + " " + order);
+        }
+        PageHelper.startPage(page,limit);
         return litemallOrderMapper.selectByExample(example);
     }
 
@@ -199,14 +217,5 @@ public class LitemallOrderService {
     }
 
 
-    public Object sellList(Integer userId, Integer dealStaus){
-        List<LitemallOrder> orderList = litemallOrderMapper.sellListBydealStaus(userId,dealStaus);//查询出正在转卖的商品
-        Short[] orderIds = new Short[10]; //保存正在转卖的商品订单id
-        for (int i=0;i<orderList.size();i++ ){
-            System.out.println(i);
-            orderIds[i] = orderList.get(i).getId().shortValue();//保存
-        }
-        List<LitemallOrderGoods> orderGoodsList = litemallOrderGoodsMapper.findListByOrderId(orderIds);
-        return orderIds;
-    }
+
 }

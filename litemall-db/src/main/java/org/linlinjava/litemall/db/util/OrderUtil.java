@@ -103,7 +103,11 @@ public class OrderUtil {
             handleOption.setDelete(true);
             handleOption.setComment(true);
             handleOption.setRebuy(true);
-        } else {
+        } else  if (status==502){
+            handleOption.setDelete(true);
+            handleOption.setComment(true);
+            handleOption.setRebuy(true);
+        }else {
             throw new IllegalStateException("status不支持");
         }
 

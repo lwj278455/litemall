@@ -83,14 +83,18 @@ public class PayUtil {
     }
 
 
-
-    public   Object pay(double price, Integer userId,HttpServletRequest request){
+    /**
+     * 统一下单接口
+     * @param price
+     * @param userId
+     * @param request
+     * @return
+     */
+    public  Object pay(double price, Integer userId,String orderNo,HttpServletRequest request){
         LitemallUser user = userService.findById(userId);
         String productName="SweetCity";
-        int number = (int)((Math.random()*9)*1000);//随机数
-        DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");//时间
-        String orderNumber = dateFormat.format(new Date()) + number;
         String openId = user.getWeixinOpenid();
+
         WxOrderEntity orderEntity = new WxOrderEntity();
 
         orderEntity.setAppid(WxAuthorization.APP_ID);
@@ -98,7 +102,7 @@ public class PayUtil {
         orderEntity.setBody(productName);
         orderEntity.setDevice_info("WEB");
         orderEntity.setTrade_type("JSAPI");
-        orderEntity.setOut_trade_no(orderNumber);
+        orderEntity.setOut_trade_no(orderNo);
         orderEntity.setTotal_fee((int)(price*100));
         orderEntity.setOpenid(openId);
         //接收支付结果的地址

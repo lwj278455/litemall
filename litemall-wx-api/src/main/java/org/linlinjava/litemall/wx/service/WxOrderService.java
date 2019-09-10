@@ -116,9 +116,14 @@ public class WxOrderService {
     @Autowired
     private LitemallGoodsProductService goodsProductService;
     @Value("${litemall.wx.app-id}")
-    private  String APP_ID = "";
+    private String APP_ID = "";
     @Value("${litemall.wx.key}")
-    private  String KEY = "";
+    private String KEY = "";
+    @Autowired
+    private LitemallFlowService litemallFlowService;
+    @Autowired
+    private LitemallCashService cashService;
+
     /**
      * 订单列表
      *
@@ -140,16 +145,15 @@ public class WxOrderService {
 
         List<Short> orderStatus = OrderUtil.orderStatus(showType);
         List<LitemallOrder> orderList = orderService.queryByOrderStatus(userId, orderStatus, page, limit, sort, order);
-
         List<Map<String, Object>> orderVoList = new ArrayList<>(orderList.size());
         for (LitemallOrder o : orderList) {
             Map<String, Object> orderVo = new HashMap<>();
             orderVo.put("id", o.getId());
             orderVo.put("orderSn", o.getOrderSn());
             orderVo.put("actualPrice", o.getActualPrice());
-            orderVo.put("orderStatusText",o.getOrderStatus());
+            orderVo.put("orderStatusText", o.getOrderStatus());
             orderVo.put("handleOption", OrderUtil.build(o));
-
+            orderVo.put("comments", o.getComments() != 0 ? true : false);
 
             List<LitemallOrderGoods> orderGoodsList = orderGoodsService.queryByOid(o.getId());
             List<Map<String, Object>> orderGoodsVoList = new ArrayList<>(orderGoodsList.size());
@@ -169,7 +173,36 @@ public class WxOrderService {
 
         return ResponseUtil.okList(orderVoList, orderList);
     }
+    public Object sellList(Integer userId, Integer dealStaus,Integer page, Integer limit,String sort, String order) {
+        List<LitemallOrder> orderList =orderService.queryByDeal(userId, dealStaus,page,limit,sort,order);//查询出正在转卖的商品
+        List<Map<String, Object>> orderVoList = new ArrayList<>(orderList.size());
+        for (LitemallOrder o : orderList) {
+            Map<String, Object> orderVo = new HashMap<>();
+            orderVo.put("id", o.getId());
+            orderVo.put("orderSn", o.getOrderSn());
+            orderVo.put("actualPrice", o.getActualPrice());
+            orderVo.put("orderStatusText", o.getOrderStatus());
+            orderVo.put("handleOption", OrderUtil.build(o));
 
+            List<LitemallOrderGoods> orderGoodsList = orderGoodsService.queryByOid(o.getId());
+            List<Map<String, Object>> orderGoodsVoList = new ArrayList<>(orderGoodsList.size());
+            for (LitemallOrderGoods orderGoods : orderGoodsList) {
+                Map<String, Object> orderGoodsVo = new HashMap<>();
+                orderGoodsVo.put("id", orderGoods.getId());
+                orderGoodsVo.put("goodsName", orderGoods.getGoodsName());
+                orderGoodsVo.put("number", orderGoods.getNumber());
+                orderGoodsVo.put("picUrl", orderGoods.getPicUrl());
+                orderGoodsVo.put("price", orderGoods.getPrice());
+                orderGoodsVo.put("specifications", orderGoods.getSpecifications());
+                orderGoodsVoList.add(orderGoodsVo);
+            }
+            orderVo.put("goodsList", orderGoodsVoList);
+            orderVo.put("index",orderList.size());
+            orderVoList.add(orderVo);
+        }
+
+        return  ResponseUtil.okList(orderVoList,orderList) ;
+    }
     /**
      * 订单详情
      *
@@ -205,7 +238,7 @@ public class WxOrderService {
         orderVo.put("handleOption", OrderUtil.build(order));
         orderVo.put("expCode", order.getShipChannel());
         orderVo.put("expNo", order.getShipSn());
-        orderVo.put("coupon_price",order.getCouponPrice());
+        orderVo.put("coupon_price", order.getCouponPrice());
 
 
         List<LitemallOrderGoods> orderGoodsList = orderGoodsService.queryByOid(order.getId());
@@ -226,6 +259,7 @@ public class WxOrderService {
     }
 
     /**
+     *
      * 提交订单
      * <p>
      * 1. 创建订单表项和订单商品表项;
@@ -237,52 +271,40 @@ public class WxOrderService {
      * @param userId 用户ID
      * @param body   订单信息，
      * @return 提交订单操作结果
+     *
      */
     @Transactional
-    public Object submit(Integer userId, String body , HttpServletRequest request) {
+    public Object submit(Integer userId, String body, HttpServletRequest request) {
         if (userId == null) {
             return ResponseUtil.unlogin();
         }
         if (body == null) {
             return ResponseUtil.badArgument();
         }
-        Integer number=JacksonUtil.parseInteger(body,"number");//商品数量
+        Integer number = JacksonUtil.parseInteger(body, "number");//商品数量
         Integer goodsId = JacksonUtil.parseInteger(body, "goodsId"); // 获取商品id
         Integer productId = JacksonUtil.parseInteger(body, "productId"); //获取商品规格id
         Integer addressId = JacksonUtil.parseInteger(body, "addressId"); //获取地址id
         Integer discountId = JacksonUtil.parseInteger(body, "discountId");//获取打折卡id
         Integer userIntegr = JacksonUtil.parseInteger(body, "userIntegr");//积分
+        Integer frontprice=JacksonUtil.parseInteger(body,"frontprice");//前端价格
         //判断如果信息为空返回参数错误
         if (goodsId == null || addressId == null || productId == null) {
             return ResponseUtil.badArgument();
         }
         LitemallGoods goods = goodsService.findById(goodsId);//根据id查询出商品
         LitemallGoodsProduct goodsProduct = goodsProductService.findById(productId);//根据id查询出规格
-
-
         BigDecimal goodsprice = goodsProduct.getPrice();//把商品价格转换成big类型
-
         BigDecimal price = BigDecimal.ZERO;//真正付的价格
-
         BigDecimal couponprice = BigDecimal.ZERO;//优惠价格
 
-        if (!StringUtils.isEmpty(discountId)&&discountId!=0) {//判断此人是否使用打折卡
+        if (!StringUtils.isEmpty(discountId) && discountId != 0) {//判断此人是否使用打折卡
             LitemallDiscount discount = discountService.selectEntityByDiscountId(discountId);  //获取打折卡的信息
             BigDecimal discuntPrice = discount.getDiscountPrice();//几折
             couponprice = goodsprice.multiply(discuntPrice);//商品折扣*真正付的价格=优惠价格
             discountService.delByDiscountId(discountId);//更新打折卡
-            if (number>1 ){
-                for (int i=0;number-1>i;i++){
-                    LitemallDiscount litemallDiscount = new LitemallDiscount();
-                    litemallDiscount.setUserId(1);
-                    litemallDiscount.setDiscountName("二折卡");
-                    litemallDiscount.setDiscountTag(goodsprice);
-                    litemallDiscount.setAddTime(LocalDateTime.now());
-                    discountService.add(litemallDiscount);
-                }
-            }
-        } else if(number>0 && StringUtils.isEmpty(discountId) || discountId==0){
-            for (int i=0;number>i;i++){
+        } else if (number > 0 && StringUtils.isEmpty(discountId) || discountId == 0) {
+            for (int i = 0; number > i; i++) {
                 LitemallDiscount litemallDiscount = new LitemallDiscount();
                 litemallDiscount.setUserId(1);
                 litemallDiscount.setDiscountName("二折卡");
@@ -293,12 +315,22 @@ public class WxOrderService {
         }
 
         BigDecimal integralprice = BigDecimal.ZERO; //积分抵扣价格
-        if (userIntegr!=null){//判断是否使用积分
-            Double integral =  userIntegr*0.01;
+        if (!StringUtils.isEmpty(userIntegr)||userIntegr>0) {//判断是否使用积分
+            Double integral = userIntegr * 0.01;
             integralprice = new BigDecimal(integral.toString());
-            LitemallUser user = userService.findById(1);
-            user.setUserIntegr(user.getUserIntegr()-userIntegr);
+            LitemallUser user = userService.findById(userId);
+            Integer total_Integral =  user.getUserIntegr() - userIntegr;
+            user.setUserIntegr(total_Integral);
+            LitemallFlow flow = new LitemallFlow();
+            flow.setFlowNum(PayUtil.create_timestamp());
+            flow.setPaidIntegral(userIntegr.toString());
+            flow.setTotalIntegral(total_Integral.toString());
+            flow.setPaidMethod(0);
+            flow.setPaidMethod(user.getId());
+            flow.setCreateTime(LocalDateTime.now());
+            litemallFlowService.add(flow);
             userService.updateById(user);
+
         }
         //获取地址详情信息
         LitemallAddress litemallAddress = addressService.queryByAddressId(addressId);
@@ -316,10 +348,9 @@ public class WxOrderService {
         String addressDetail = address.getProvince() + address.getCity() + address.getCounty() + address.getAddressDetail();
 
         //算出价格
+        BigDecimal amount = new BigDecimal(number.toString());
 
-        BigDecimal amount=new BigDecimal(number.toString());
-
-        BigDecimal  retailprice =amount.multiply(goodsprice);
+        BigDecimal retailprice = amount.multiply(goodsprice);
 
         price = amount.multiply(goodsprice).subtract(couponprice).subtract(integralprice);
 
@@ -352,19 +383,19 @@ public class WxOrderService {
         orderGoods.setPicUrl(goods.getPicUrl());
         orderGoodsService.add(orderGoods);
 
-        Map map =null;
-        String orderResult = prepay(userId,price,orderId,request).toString();
-        if (orderResult==null|| StringUtils.isEmpty(orderResult)){
-            map=new HashMap();
-            map.put("403","调用下单接口失败");
+        Map map = null;
+        String orderResult = prepay(userId, price, orderId, request).toString();
+        if (orderResult == null || StringUtils.isEmpty(orderResult)) {
+            map = new HashMap();
+            map.put("403", "调用下单接口失败");
             return ResponseUtil.ok(map);
         }
         try {
-            map= XmlUtil.doXMLParse(orderResult);
+            map = XmlUtil.doXMLParse(orderResult);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        String prepay_id =  map.get("prepay_id").toString();
+        String prepay_id = map.get("prepay_id").toString();
         String appId = WxAuthorization.APP_ID;
         String timeStamp = PayUtil.create_timestamp();
         String signType = "MD5";
@@ -374,29 +405,30 @@ public class WxOrderService {
 
         orderEntity.setAppId(WxAuthorization.APP_ID);
         orderEntity.setNonceStr(map.get("nonce_str").toString());
-        orderEntity.set_package("prepay_id="+prepay_id);
+        orderEntity.set_package("prepay_id=" + prepay_id);
         orderEntity.setTimeStamp(timeStamp);
         orderEntity.setSignType("MD5");
-        String paySign=null;
+        String paySign = null;
         try {
             paySign = PayUtil.generateSignature(orderEntity);
-            System.out.println("支付签名"+paySign);
+            System.out.println("支付签名" + paySign);
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         }
         Map data = new HashMap();
-        data.put("nonce_str",map.get("nonce_str"));
-        data.put("package",orderEntity.get_package());
-        data.put("appId",appId);
-        data.put("timeStamp",timeStamp);
-        data.put("signType","MD5");
-        data.put("paySign",paySign);
+        data.put("nonce_str", map.get("nonce_str"));
+        data.put("package", orderEntity.get_package());
+        data.put("appId", appId);
+        data.put("timeStamp", timeStamp);
+        data.put("signType", "MD5");
+        data.put("paySign", paySign);
         System.out.println(data);
         return ResponseUtil.ok(data);
     }
 
     /**
      * 判断是否有积分
+     *
      * @return
      */
     @Transactional
@@ -489,12 +521,12 @@ public class WxOrderService {
      * 2. 微信商户平台返回支付订单ID
      * 3. 设置订单付款状态
      *
-     * @param userId 用户ID
-     * @param orderId   订单信息，{ orderId：xxx }
+     * @param userId  用户ID
+     * @param orderId 订单信息，{ orderId：xxx }
      * @return 支付订单ID
      */
     @Transactional
-    public Object prepay(Integer userId,BigDecimal price,Integer orderId, HttpServletRequest request) {
+    public Object prepay(Integer userId, BigDecimal price, Integer orderId, HttpServletRequest request) {
         if (userId == null) {
             return ResponseUtil.unlogin();
         }
@@ -512,8 +544,8 @@ public class WxOrderService {
 
         LitemallUser user = userService.findById(userId);
 
-        String productName="SweetCity";
-        int number = (int)((Math.random()*9)*1000);//随机数
+        String productName = "SweetCity";
+        int number = (int) ((Math.random() * 9) * 1000);//随机数
 //        DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");//时间
 //        String orderNumber = dateFormat.format(new Date()) + number;
         String openId = user.getWeixinOpenid();
@@ -537,7 +569,7 @@ public class WxOrderService {
         String sign = null;
         try {
             sign = PayUtil.generateSignature(orderEntity);
-            System.out.println("预支付签名"+sign);
+            System.out.println("预支付签名" + sign);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -556,15 +588,15 @@ public class WxOrderService {
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
-        Map map =null;
+        Map map = null;
         try {
-            map= XmlUtil.doXMLParse(xml);
+            map = XmlUtil.doXMLParse(xml);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        String  return_code = (String) map.get("return_code");
-        if (!return_code.equals("SUCCESS")){
-            xml="";
+        String return_code = (String) map.get("return_code");
+        if (!return_code.equals("SUCCESS")) {
+            xml = "";
         }
         return xml;
     }
@@ -612,48 +644,73 @@ public class WxOrderService {
 
         String orderSn = result.getOutTradeNo();
         String payId = result.getTransactionId();
-
-        // 分转化成元
-        String totalFee = BaseWxPayResult.fenToYuan(result.getTotalFee());
-        LitemallOrder order = orderService.findBySn(orderSn);
-        if (order == null) {
-            return WxPayNotifyResponse.fail("订单不存在 sn=" + orderSn);
-        }
-
-        // 检查这个订单是否已经处理过
-        if (OrderUtil.isPayStatus(order) && order.getPayId() != null) {
-            return WxPayNotifyResponse.success("订单已经处理成功!");
-        }
-
-        // 检查支付订单金额
-        if (!totalFee.equals(order.getActualPrice().toString())) {
-            return WxPayNotifyResponse.fail(order.getOrderSn() + " : 支付金额不符合 totalFee=" + totalFee);
-        }
-
-        order.setPayId(payId);
-        order.setPayTime(LocalDateTime.now());
-        order.setOrderStatus(OrderUtil.STATUS_PAY);
-        if (orderService.updateWithOptimisticLocker(order) == 0) {
-            // 这里可能存在这样一个问题，用户支付和系统自动取消订单发生在同时
-            // 如果数据库首先因为系统自动取消订单而更新了订单状态；
-            // 此时用户支付完成回调这里也要更新数据库，而由于乐观锁机制这里的更新会失败
-            // 因此，这里会重新读取数据库检查状态是否是订单自动取消，如果是则更新成支付状态。
-            order = orderService.findBySn(orderSn);
-            int updated = 0;
-            if (OrderUtil.isAutoCancelStatus(order)) {
-                order.setPayId(payId);
-                order.setPayTime(LocalDateTime.now());
-                order.setOrderStatus(OrderUtil.STATUS_PAY);
-                updated = orderService.updateWithOptimisticLocker(order);
+        if (orderSn.substring(0, 1).equals("d")) {
+            List<LitemallCash> cashList = cashService.querySelectiveOrderNo(orderSn);
+            LitemallCash cash = new LitemallCash();
+            cash.setId(cashList.get(0).getId());
+            cash.setStatus("0");
+            cashService.updateById(cash);
+            LitemallUser userInfo = userService.findById(cashList.get(0).getUserId());
+            LitemallUser user = new LitemallUser();
+            user.setId(cashList.get(0).getUserId());
+            BigDecimal integer = cashList.get(0).getPaidAmount().add(BigDecimal.valueOf(userInfo.getUserIntegr()));
+            user.setUserIntegr(Integer.valueOf(integer.toString()));
+            userService.updateById(user);
+        } else {
+            // 分转化成元
+            String totalFee = BaseWxPayResult.fenToYuan(result.getTotalFee());
+            LitemallOrder order = orderService.findBySn(orderSn);
+            if (order == null) {
+                return WxPayNotifyResponse.fail("订单不存在 sn=" + orderSn);
             }
 
-            // 如果updated是0，那么数据库更新失败
-            if (updated == 0) {
-                return WxPayNotifyResponse.fail("更新数据已失效");
+            // 检查这个订单是否已经处理过
+            if (OrderUtil.isPayStatus(order) && order.getPayId() != null) {
+                return WxPayNotifyResponse.success("订单已经处理成功!");
+            }
+
+            // 检查支付订单金额
+            if (!totalFee.equals(order.getActualPrice().toString())) {
+                return WxPayNotifyResponse.fail(order.getOrderSn() + " : 支付金额不符合 totalFee=" + totalFee);
+            }
+
+            order.setPayId(payId);
+            order.setPayTime(LocalDateTime.now());
+            order.setOrderStatus(OrderUtil.STATUS_PAY);
+            if (orderService.updateWithOptimisticLocker(order) == 0) {
+                // 这里可能存在这样一个问题，用户支付和系统自动取消订单发生在同时
+                // 如果数据库首先因为系统自动取消订单而更新了订单状态；
+                // 此时用户支付完成回调这里也要更新数据库，而由于乐观锁机制这里的更新会失败
+                // 因此，这里会重新读取数据库检查状态是否是订单自动取消，如果是则更新成支付状态。
+                order = orderService.findBySn(orderSn);
+                int updated = 0;
+                if (OrderUtil.isAutoCancelStatus(order)) {
+                    order.setPayId(payId);
+                    order.setPayTime(LocalDateTime.now());
+                    order.setOrderStatus(OrderUtil.STATUS_PAY);
+                    updated = orderService.updateWithOptimisticLocker(order);
+                    if (order.getIntegralPrice().compareTo(BigDecimal.ZERO) == 1) {
+                        LitemallFlow flow = new LitemallFlow();
+                        flow.setCreateTime(LocalDateTime.now());
+                        flow.setFlowNum(PayUtil.create_timestamp());
+                        flow.setPaidIntegral(order.getIntegralPrice().multiply(new BigDecimal(100)).toString());
+                        LitemallUser user = userService.findById(order.getUserId());
+                        flow.setTotalIntegral(user.getUserIntegr().toString());
+                        flow.setPaidMethod(0);
+                        flow.setUserId(order.getUserId().toString());
+                        litemallFlowService.add(flow);
+                    }
+                }
+
+                // 如果updated是0，那么数据库更新失败
+                if (updated == 0) {
+                    return WxPayNotifyResponse.fail("更新数据已失效");
+                }
             }
         }
         return WxPayNotifyResponse.success("处理成功!");
     }
+
     /**
      * 订单申请退款
      * <p>
@@ -682,19 +739,17 @@ public class WxOrderService {
         }
 
         OrderHandleOption handleOption = OrderUtil.build(order);
-        if (!handleOption.isRefund()) {
-            return ResponseUtil.fail(ORDER_INVALID_OPERATION, "订单不能取消");
-        }
 
         // 设置订单申请退款状态
         order.setOrderStatus(OrderUtil.STATUS_REFUND);
+
         if (orderService.updateWithOptimisticLocker(order) == 0) {
             return ResponseUtil.updatedDateExpired();
         }
 
-        //TODO 发送邮件和短信通知，这里采用异步发送
-        // 有用户申请退款，邮件通知运营人员
-        notifyService.notifyMail("退款申请", order.toString());
+//        //TODO 发送邮件和短信通知，这里采用异步发送
+//        // 有用户申请退款，邮件通知运营人员
+//        notifyService.notifyMail("退款申请", order.toString());
 
         return ResponseUtil.ok();
     }
@@ -838,32 +893,15 @@ public class WxOrderService {
             return ResponseUtil.badArgumentValue();
         }
 
-        Short orderStatus = order.getOrderStatus();
-        if (!OrderUtil.isConfirmStatus(order) && !OrderUtil.isAutoConfirmStatus(order)) {
-            return ResponseUtil.fail(ORDER_INVALID_OPERATION, "当前商品不能评价");
-        }
-
-        if (!order.getUserId().equals(userId)) {
-            return ResponseUtil.fail(ORDER_INVALID, "当前商品不属于用户");
-        }
-
-        Integer commentId = orderGoods.getComment();
-        if (commentId == -1) {
-            return ResponseUtil.fail(ORDER_COMMENT_EXPIRED, "当前商品评价时间已经过期");
-        }
-
-        if (commentId != 0) {
-            return ResponseUtil.fail(ORDER_COMMENTED, "订单商品已评价");
-        }
 
         String content = JacksonUtil.parseString(body, "content");
         if (StringUtils.isEmpty(content)) {
             return ResponseUtil.badArgumentValue();
         }
-        Boolean hasPicture = JacksonUtil.parseBoolean(body, "hasPicture");
+        Boolean hasPicture = true;
         List<String> picUrls = JacksonUtil.parseStringList(body, "picUrls");
-        if (picUrls == null ) {
-            hasPicture=false;
+        if (picUrls == null) {
+            hasPicture = false;
         }
 
         // 1. 创建评价
@@ -887,6 +925,7 @@ public class WxOrderService {
         }
 
         order.setComments(commentCount);
+        order.setOrderStatus((short) 502);
         orderService.updateWithOptimisticLocker(order);
 
         return ResponseUtil.ok();

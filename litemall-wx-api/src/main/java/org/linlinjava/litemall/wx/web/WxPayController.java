@@ -3,7 +3,9 @@ package org.linlinjava.litemall.wx.web;
 import io.swagger.models.auth.In;
 import org.linlinjava.litemall.core.util.JacksonUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
+import org.linlinjava.litemall.db.domain.LitemallCash;
 import org.linlinjava.litemall.db.domain.LitemallOrder;
+import org.linlinjava.litemall.db.service.LitemallCashService;
 import org.linlinjava.litemall.db.service.LitemallOrderService;
 import org.linlinjava.litemall.wx.annotation.LoginUser;
 import org.linlinjava.litemall.wx.util.JsApiSignEntity;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import sun.plugin.cache.JarCacheUtil;
 
 import javax.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,8 +33,12 @@ public class WxPayController {
     private PayUtil payUtil;
     @Autowired
     private LitemallOrderService orderService;
+    @Autowired
+    private LitemallCashService litemallCashService;
 
     /**
+     *
+     * 代理商充值
      *  @LoginUser
      * @param body
      * @param request
@@ -42,10 +49,25 @@ public class WxPayController {
         if (StringUtils.isEmpty(body)&&StringUtils.isEmpty(userId)) {
             return ResponseUtil.badArgumentValue();
         }
-        Integer orderId = JacksonUtil.parseInteger(body, "orderId");
-        LitemallOrder order =  orderService.findById(orderId);
+        Integer status = JacksonUtil.parseInteger(body, "status");
+        double price=0;
+        if (status==1){
+            price=10000.00;
+        }else if(status==2){
+            price=30000.00;
+        }else if(status==3){
+            price=90000.00;
+        }
+        String orderNo="d"+PayUtil.create_timestamp();
+        LitemallCash litemallCash=new LitemallCash();
+        litemallCash.setCashNum(orderNo);
+        litemallCash.setPaidAmount(BigDecimal.valueOf(price));
+        litemallCash.setUserId(userId);
+        litemallCash.setStatus(String.valueOf(1));
+        litemallCash.setType("成为代理商");
+        litemallCashService.add(litemallCash);
         Map map =null;
-        String orderResult = payUtil.pay(order.getActualPrice().doubleValue(),userId,request).toString();
+        String orderResult = payUtil.pay(price,userId,orderNo,request).toString();
         if (orderResult==null|| StringUtils.isEmpty(orderResult)){
             map=new HashMap();
             map.put("403","调用下单接口失败");

@@ -40,10 +40,8 @@ public class WxAuthorization {
 
     //连接超时时间，默认10秒
     private static final int socketTimeout = 10000;
-
     //传输超时时间，默认30秒
     private static final int connectTimeout = 30000;
-
     //获取access_token的url
     private static final String BASE_TOKEN_URL = "https://api.weixin.qq.com/sns/oauth2/access_token?";
     //固定值
@@ -81,6 +79,11 @@ public class WxAuthorization {
         this.SECRET = SECRET;
     }
 
+    /**
+     * 登录请求
+     * @param code
+     * @return
+     */
     public String getAccess_token(String code) {
         String url = BASE_TOKEN_URL+"appid="+APP_ID+"&secret="+SECRET+"&code="+code+"&grant_type="+GRANT_TYPE;//
         // 获得Http客户端(可以理解为:你得先有一个浏览器;注意:实际上HttpClient与浏览器是不一样的)
@@ -123,7 +126,16 @@ public class WxAuthorization {
         }
         return null;
     }
-    private EmojiConverter emojiConverter = EmojiConverter.getInstance();
+
+
+//    private EmojiConverter emojiConverter = EmojiConverter.getInstance();
+
+    /**
+     * 获取用户信息
+     * @param access_token
+     * @param appid
+     * @return
+     */
     public UserInfo getUserInfo(String access_token,String appid) {
         String url ="https://api.weixin.qq.com/sns/userinfo?access_token="+access_token+"&openid="+appid+"&lang=zh_CN";
         // 获得Http客户端(可以理解为:你得先有一个浏览器;注意:实际上HttpClient与浏览器是不一样的)
@@ -177,6 +189,21 @@ public class WxAuthorization {
         }
         return null;
     }
+
+    public static HttpResponse  doPostWithJson(String url) throws Exception {
+        // 获得Http客户端(可以理解为:你得先有一个浏览器;注意:实际上HttpClient与浏览器是不一样的)
+        CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+        // 创建Get请求
+        HttpPost httpPost = new HttpPost(url);
+        // 响应模型
+        CloseableHttpResponse response = null;
+        // 由客户端执行(发送)Get请求
+        response = httpClient.execute(httpPost);
+        return  response;
+    }
+
+
+
     public static String sendPost(String url, Object xmlObj) throws ClientProtocolException, IOException, UnrecoverableKeyException, KeyManagementException, KeyStoreException, NoSuchAlgorithmException {
         HttpPost httpPost = new HttpPost(url);
         //解决XStream对出现双下划线的bug

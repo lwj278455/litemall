@@ -33,34 +33,33 @@ public class WxOrderController {
     /**
      * 订单列表
      *
-     * @param userId   用户ID @LoginUser Integer userId,
-     * @param showType 订单信息@LoginUser Integer userId,
+     * @param userId   用户ID
+     * @param showType 订单信息
      * @param page     分页页数
-     * @param limit    分页大小  @LoginUser Integer userId,
-     * @return 订单列表@LoginUser Integer userId,
+     * @param limit    分页大小
+     * @return 订单列表
      */
     @GetMapping("list")
-    public Object list(
-
+    public Object list(@LoginUser Integer userId,
                         @RequestParam(defaultValue = "0") Integer showType,
                        @RequestParam(defaultValue = "1") Integer page,
                        @RequestParam(defaultValue = "10") Integer limit,
                        @Sort @RequestParam(defaultValue = "add_time") String sort,
                        @Order @RequestParam(defaultValue = "asc") String order) {
-        return wxOrderService.list(1, showType, page, limit, sort, order);
+        return wxOrderService.list(userId, showType, page, limit, sort, order);
     }
 
 
     /**
-     * 订单详情@LoginUser Integer userId,
-     *@LoginUser Integer userId,@LoginUser Integer userId,
-     * @param userId  用户ID@LoginUser Integer userId,
+     * 订单详情
+     *
+     * @param userId  用户ID
      * @param orderId 订单ID
      * @return 订单详情
      */
     @GetMapping("detail")
-    public Object detail( @NotNull Integer orderId) {
-        return wxOrderService.detail(1, orderId);
+    public Object detail(@LoginUser Integer userId, @NotNull Integer orderId) {
+        return wxOrderService.detail(userId, orderId);
     }
 
     /**
@@ -79,6 +78,7 @@ public class WxOrderController {
     public Object isAgent(@LoginUser Integer userId) {
         return wxOrderService.isAgent(userId);
     }
+
     @GetMapping("isDiscounts")
     public Object isDiscounts(BigDecimal retailprice){
         Object discount = wxOrderService.isDiscounts(retailprice);
@@ -179,13 +179,13 @@ public class WxOrderController {
     /**
      * 评价订单商品
      *
-     * @param userId 用户ID@LoginUser Integer userId,
+     * @param userId 用户ID
      * @param body   订单信息，{ orderId：xxx }
      * @return 订单操作结果
      */
     @PostMapping("comment")
-    public Object comment(@RequestBody String body) {
-        return wxOrderService.comment(1, body);
+    public Object comment(@LoginUser Integer userId,@RequestBody String body) {
+        return wxOrderService.comment(userId, body);
     }
 
 }

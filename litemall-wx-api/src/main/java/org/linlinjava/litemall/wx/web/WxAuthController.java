@@ -4,6 +4,7 @@ import cn.binarywang.wx.miniapp.api.WxMaService;
 import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import cn.binarywang.wx.miniapp.bean.WxMaPhoneNumberInfo;
 import com.github.binarywang.java.emoji.EmojiConverter;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.linlinjava.litemall.core.notify.NotifyService;
@@ -60,7 +61,8 @@ public class WxAuthController {
 
     @Autowired
     private WxAuthorization wxAuthorization;
-    private EmojiConverter emojiConverter = EmojiConverter.getInstance();
+
+
     /**
      * 账号登录
      *
@@ -120,7 +122,7 @@ public class WxAuthController {
      * @return 登录结果
      */
     @PostMapping("login_by_weixin")
-    public Object loginByWeixin (@RequestBody String body) {
+    public Object loginByWeixin(@RequestBody String body) {
         if (body == null) {
             return ResponseUtil.badArgument();
         }
@@ -134,15 +136,17 @@ public class WxAuthController {
         LitemallUser user = userService.queryByOid(userInfo.getOpenid());
         if (user != null) {
             return ResponseUtil.ok(UserTokenManager.generateToken(user.getId()));
-        }else {
+        } else {
             LitemallUser litemallUser = new LitemallUser();
             litemallUser.setGender(userInfo.getSex());
             litemallUser.setLastLoginTime(LocalDateTime.now());
+            String nickname = userInfo.getNickName();
             try {
-                litemallUser.setNickname(BASE64.decryptBASE64(userInfo.getNickName()).toString());
+                nickname = Base64.encodeBase64String(nickname.getBytes("UTF-8"));
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            litemallUser.setNickname(nickname);
             litemallUser.setAvatar(userInfo.getHeadimgurl());
             litemallUser.setWeixinOpenid(userInfo.getOpenid());
             litemallUser.setunionid(userInfo.getUnionid());
@@ -151,7 +155,6 @@ public class WxAuthController {
             return ResponseUtil.ok(token);
         }
     }
-
 
     /**
      * 请求注册验证码
@@ -296,7 +299,6 @@ public class WxAuthController {
         result.put("userInfo", userInfo);
         return ResponseUtil.ok(result);
     }
-
 
 
     /**

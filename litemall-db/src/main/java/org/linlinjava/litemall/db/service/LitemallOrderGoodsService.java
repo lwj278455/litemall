@@ -60,7 +60,10 @@ public class LitemallOrderGoodsService {
      * @return
      */
     public Integer[] selectGoodsId(Short[] orders){
-        return orderGoodsMapper.selectGoodsByOrderId(orders);
+        if (orderGoodsMapper.selectGoodsByOrderId(orders)!=null){
+            return orderGoodsMapper.selectGoodsByOrderId(orders);
+        }
+        return null;
     }
 
     /**
