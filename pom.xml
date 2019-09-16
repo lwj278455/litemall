@@ -169,12 +169,13 @@
 
     <dependencies>
 
-        <!-- 热部署模块 -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-devtools</artifactId>
-            <optional>true</optional>
-        </dependency>
+<!--        &lt;!&ndash; 热部署模块 &ndash;&gt;-->
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.boot</groupId>-->
+<!--            <artifactId>spring-boot-devtools</artifactId>-->
+<!--            <optional>false</optional>-->
+<!--        </dependency>-->
+
 
         <!-- 测试模块 -->
         <dependency>

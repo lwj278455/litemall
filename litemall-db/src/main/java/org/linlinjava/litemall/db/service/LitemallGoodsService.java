@@ -209,7 +209,6 @@ public class LitemallGoodsService {
      * @return
      */
     public  List<LitemallGoods> findByDealGoods(Integer goodsId,String  name,List<Integer> categoryIds) {
-
         return goodsMapper.selectByDealGoodSelective(goodsId,name,categoryIds);
     }
 

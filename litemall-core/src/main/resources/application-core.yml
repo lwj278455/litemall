@@ -5,7 +5,7 @@ litemall:
     app-secret: 03ba968fb5e9b97a9d1bf3523112d733
     mch-id: 1537757171
     mch-key: GY64mgLScDLvLmJOfZFz12vmXref12VR
-    notify-url: https://www.xxxkeji.com
+    notify-url: http://www.wl.51cjkj.com:8082/wx/order/pay-notify
     # 商户证书文件路径
     # 请参考“商户证书”一节 https://pay.weixin.qq.com/wiki/doc/api/wxa/wxa_api.php?chapter=4_3
     key-path: xxxxx

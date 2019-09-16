@@ -1,9 +1,9 @@
 package org.linlinjava.litemall.wx.util;
 
-import com.github.binarywang.java.emoji.EmojiConverter;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.xml.DomDriver;
 import com.thoughtworks.xstream.io.xml.XmlFriendlyNameCoder;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
@@ -164,8 +164,12 @@ public class WxAuthorization {
                 String unionid = JacksonUtil.parseString(responseStr,"unionid");
                 Byte sex = JacksonUtil.parseByte(responseStr,"sex");
                 UserInfo userInfo = new UserInfo(openid,headimgurl,country,province,city,unionid,sex);
-                final BASE64Decoder decoder = new BASE64Decoder();
-                userInfo.setNickName(new String(decoder.decodeBuffer(nickname),"utf-8"));
+                String name = new String(nickname.getBytes("ISO-8859-1"),"utf-8");
+                try {
+                    userInfo.setNickName(Base64.encodeBase64String(name.getBytes("utf-8")));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 return userInfo;
             }
         } catch (ClientProtocolException e) {

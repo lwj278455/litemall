@@ -36,4 +36,20 @@ public class LitemallFlowService {
         PageHelper.startPage(page, limit);
         return litemallFlowMapper.selectByExample(example);
     }
+    public LitemallFlow findByOrderSn(String orderSn){
+        LitemallFlowExample example = new LitemallFlowExample();
+        LitemallFlowExample.Criteria criteria = example.createCriteria();
+        if (!StringUtils.isEmpty(orderSn)){
+            criteria.andFlowNumEqualTo(orderSn);
+        }
+        return litemallFlowMapper.selectOneByExample(example);
+    }
+    public List<LitemallFlow> findByUserId(Integer userId){
+        LitemallFlowExample example = new LitemallFlowExample();
+        LitemallFlowExample.Criteria criteria = example.createCriteria();
+        if (!StringUtils.isEmpty(userId)){
+            criteria.andUserIdEqualTo(userId.toString());
+        }
+        return litemallFlowMapper.selectByExample(example);
+    }
 }

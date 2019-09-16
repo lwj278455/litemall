@@ -15,6 +15,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import sun.misc.Request;
 
+import javax.servlet.http.HttpServletRequest;
 import java.net.HttpURLConnection;
 import java.util.List;
 
@@ -67,4 +68,18 @@ public class WxDealController {
         }
         return wxOrderService.sellList(userId, dealStaus,page,limit,sort,order);
     }
+
+
+    /**
+     * 提交订单
+     *
+     * @param userId 用户ID
+     * @param body 订单信息，{ cartId：xxx, addressId: xxx, couponId: xxx, message: xxx, grouponRulesId: xxx,  grouponLinkId: xxx}
+     * @return 提交订单操作结果@LoginUser Integer userId
+     */
+    @PostMapping("submit")
+    public Object submit(@LoginUser Integer userId,@RequestBody String body, HttpServletRequest request) {
+        return wxOrderService.subAlipay(userId, body,request);
+    }
+
 }

@@ -29,7 +29,6 @@ public class WxDiscountController {
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         Callable<List> discountListCall=()->discountService.selectListByUserId(userId);
         FutureTask<List> discountListTask=new FutureTask<>(discountListCall);
-
         executorService.submit(discountListTask);
         Map<String,Object> entity=new HashMap<>();
 

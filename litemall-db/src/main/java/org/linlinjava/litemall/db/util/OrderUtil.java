@@ -1,6 +1,7 @@
 package org.linlinjava.litemall.db.util;
 
 import org.linlinjava.litemall.db.domain.LitemallOrder;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -103,14 +104,13 @@ public class OrderUtil {
             handleOption.setDelete(true);
             handleOption.setComment(true);
             handleOption.setRebuy(true);
-        } else  if (status==502){
+        } else  if (status==501||status==502){
             handleOption.setDelete(true);
             handleOption.setComment(true);
             handleOption.setRebuy(true);
-        }else {
+        }else{
             throw new IllegalStateException("status不支持");
         }
-
         return handleOption;
     }
 
@@ -119,9 +119,7 @@ public class OrderUtil {
         if (showType == 0) {
             return null;
         }
-
         List<Short> status = new ArrayList<Short>(2);
-
         if (showType.equals(1)) {
             // 待付款订单
             status.add((short) 101);
@@ -134,8 +132,6 @@ public class OrderUtil {
         } else if (showType.equals(4)) {
             // 待评价订单
             status.add((short) 401);
-//            系统超时自动取消，此时应该不支持评价
-//            status.add((short)402);
         } else {
             return null;
         }

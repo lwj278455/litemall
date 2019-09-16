@@ -87,7 +87,6 @@ public class UserInfo {
 
     public UserInfo(String openid, String headimgurl, String country, String province, String city, String unionid, Byte sex) {
         this.openid=openid;
-
         this.headimgurl = headimgurl;
         this.country = country;
         this.province = province;

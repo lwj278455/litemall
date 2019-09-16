@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.constraints.NotNull;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -132,7 +133,8 @@ public class WxGoodsController {
 				c.put("addTime", comment.getAddTime());
 				c.put("content", comment.getContent());
 				LitemallUser user = userService.findById(comment.getUserId());
-				c.put("nickname", user == null ? "" : user.getNickname());
+				String name = new String(Base64.getDecoder().decode(user.getNickname()), StandardCharsets.UTF_8);
+				c.put("nickname", user == null ? "" : name);
 				c.put("avatar", user == null ? "" : user.getAvatar());
 				c.put("picList", comment.getPicUrls());
 				commentsVo.add(c);

@@ -3,7 +3,6 @@ package org.linlinjava.litemall.db.domain;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 
 public class LitemallComment {
     /**

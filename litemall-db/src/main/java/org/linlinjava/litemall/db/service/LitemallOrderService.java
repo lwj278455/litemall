@@ -111,7 +111,7 @@ public class LitemallOrderService {
         if (!StringUtils.isEmpty(sort) && !StringUtils.isEmpty(order)) {
             example.setOrderByClause(sort + " " + order);
         }
-        PageHelper.startPage(page,limit);
+        PageHelper.startPage(page,limit,true);
         return litemallOrderMapper.selectByExample(example);
     }
 

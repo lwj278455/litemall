@@ -50,4 +50,13 @@ public class LitemallCashService {
         criteria.andCashNumEqualTo(orderNo);
         return litemallCashMapper.selectByExample(example);
     }
+
+    public List<LitemallCash> findByUserId(Integer userId) {
+        LitemallCashExample example = new LitemallCashExample();
+        LitemallCashExample.Criteria criteria = example.createCriteria();
+        if (!StringUtils.isEmpty(userId)){
+            criteria.andUserIdEqualTo(userId);
+        }
+        return litemallCashMapper.selectByExample(example);
+    }
 }
