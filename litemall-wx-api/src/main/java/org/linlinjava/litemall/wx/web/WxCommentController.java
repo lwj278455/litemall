@@ -17,6 +17,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.constraints.NotNull;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -141,6 +142,8 @@ public class WxCommentController {
             commentVo.put("picList", comment.getPicUrls());
 
             UserInfo userInfo = userInfoService.getInfo(comment.getUserId());
+            String name = new String(Base64.getDecoder().decode(userInfo.getNickName()), StandardCharsets.UTF_8);
+            userInfo.setNickName(name);
             commentVo.put("userInfo", userInfo);
 
             String reply = commentService.queryReply(comment.getId());
@@ -150,4 +153,6 @@ public class WxCommentController {
         }
         return ResponseUtil.okList(commentVoList, commentList);
     }
+
+
 }

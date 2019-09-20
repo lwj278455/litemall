@@ -120,7 +120,7 @@ public class WxOrderController {
      * @return 操作结果
      */
     @PostMapping("pay-notify")
-    public Object payNotify(HttpServletRequest request, HttpServletResponse response) {
+    public Object payNotify(HttpServletRequest request, HttpServletResponse response) throws Exception {
         return wxOrderService.payNotify(request, response);
     }
 

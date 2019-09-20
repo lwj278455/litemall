@@ -94,6 +94,7 @@ public class WxGoodsController {
 	 */
 	@GetMapping("detail")
 	public Object detail(@LoginUser Integer userId, @NotNull Integer id,@RequestParam(defaultValue = "1") Integer page ,@RequestParam(defaultValue = "2") Integer limit) {
+
 		// 商品信息
 		LitemallGoods info = goodsService.findById(id);
 

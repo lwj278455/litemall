@@ -37,7 +37,10 @@ public class WxDealController {
     @PostMapping("/sell")
     public Object sell(@LoginUser Integer userId, @RequestBody String body) {
         Integer orderId = JacksonUtil.parseInteger(body, "orderId");
-        if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(orderId)) {
+        if (StringUtils.isEmpty(userId)){
+            return ResponseUtil.unlogin();
+        }
+        if (StringUtils.isEmpty(orderId)) {
             return ResponseUtil.badArgument();
         }
 
@@ -63,7 +66,11 @@ public class WxDealController {
                            @RequestParam(defaultValue = "10") Integer limit,
                            @Sort @RequestParam(defaultValue = "add_time") String sort,
                            @Order @RequestParam(defaultValue = "asc") String order) {
-        if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(dealStaus)) {
+        if (StringUtils.isEmpty(userId)){
+            return ResponseUtil.unlogin();
+
+        }
+        if (StringUtils.isEmpty(dealStaus)) {
             return ResponseUtil.badArgument();
         }
         return wxOrderService.sellList(userId, dealStaus,page,limit,sort,order);

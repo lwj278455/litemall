@@ -66,12 +66,12 @@ public class JwtHelper {
 		    Claim claim = claims.get("userId");
 		    return claim.asInt();
 		} catch (JWTVerificationException exception){
-//			exception.printStackTrace();
+			exception.printStackTrace();
 		}
 		
-		return 0;
+		return null;
 	}
-	
+
 	public  Date getAfterDate(Date date, int year, int month, int day, int hour, int minute, int second){
 		if(date == null){
 			date = new Date();

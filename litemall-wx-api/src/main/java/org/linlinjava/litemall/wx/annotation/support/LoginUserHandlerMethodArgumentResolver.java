@@ -23,6 +23,7 @@ public class LoginUserHandlerMethodArgumentResolver implements HandlerMethodArgu
 
 //        return new Integer(1);
         String token = request.getHeader(LOGIN_TOKEN_KEY);
+        System.out.println("token=========="+token);
         if (token == null || token.isEmpty()) {
             return null;
         }

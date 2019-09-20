@@ -50,7 +50,7 @@ public class LitemallUser {
      *
      * @mbg.generated
      */
-    private String password;
+    private String passwd;
 
     public String getTicket() {
         return ticket;
@@ -298,8 +298,8 @@ public class LitemallUser {
      *
      * @mbg.generated
      */
-    public String getPassword() {
-        return password;
+    public String getPasswd() {
+        return passwd;
     }
 
     /**
@@ -311,7 +311,7 @@ public class LitemallUser {
      * @mbg.generated
      */
     public void setPassword(String password) {
-        this.password = password;
+        this.passwd = password;
     }
 
     /**
@@ -676,7 +676,7 @@ public class LitemallUser {
         sb.append(", NOT_DELETED=").append(NOT_DELETED);
         sb.append(", id=").append(id);
         sb.append(", username=").append(username);
-        sb.append(", password=").append(password);
+        sb.append(", passwd=").append(passwd);
         sb.append(", gender=").append(gender);
         sb.append(", birthday=").append(birthday);
         sb.append(", lastLoginTime=").append(lastLoginTime);
@@ -715,7 +715,7 @@ public class LitemallUser {
         LitemallUser other = (LitemallUser) that;
         return (this.getId() == null ? other.getId() == null : this.getId().equals(other.getId()))
             && (this.getUsername() == null ? other.getUsername() == null : this.getUsername().equals(other.getUsername()))
-            && (this.getPassword() == null ? other.getPassword() == null : this.getPassword().equals(other.getPassword()))
+            && (this.getPasswd() == null ? other.getPasswd() == null : this.getPasswd().equals(other.getPasswd()))
             && (this.getGender() == null ? other.getGender() == null : this.getGender().equals(other.getGender()))
             && (this.getBirthday() == null ? other.getBirthday() == null : this.getBirthday().equals(other.getBirthday()))
             && (this.getLastLoginTime() == null ? other.getLastLoginTime() == null : this.getLastLoginTime().equals(other.getLastLoginTime()))
@@ -744,7 +744,7 @@ public class LitemallUser {
         int result = 1;
         result = prime * result + ((getId() == null) ? 0 : getId().hashCode());
         result = prime * result + ((getUsername() == null) ? 0 : getUsername().hashCode());
-        result = prime * result + ((getPassword() == null) ? 0 : getPassword().hashCode());
+        result = prime * result + ((getPasswd() == null) ? 0 : getPasswd().hashCode());
         result = prime * result + ((getGender() == null) ? 0 : getGender().hashCode());
         result = prime * result + ((getBirthday() == null) ? 0 : getBirthday().hashCode());
         result = prime * result + ((getLastLoginTime() == null) ? 0 : getLastLoginTime().hashCode());
@@ -839,7 +839,7 @@ public class LitemallUser {
     public enum Column {
         id("id", "id", "INTEGER", false),
         username("username", "username", "VARCHAR", false),
-        password("password", "password", "VARCHAR", true),
+        passwd("passwd", "passwd", "VARCHAR", true),
         gender("gender", "gender", "TINYINT", false),
         birthday("birthday", "birthday", "DATE", false),
         lastLoginTime("last_login_time", "lastLoginTime", "TIMESTAMP", false),

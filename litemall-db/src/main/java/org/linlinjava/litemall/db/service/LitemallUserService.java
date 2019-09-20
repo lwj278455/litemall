@@ -22,7 +22,6 @@ public class LitemallUserService {
     }
 
 
-
     public UserVo findUserVoById(Integer userId) {
         LitemallUser user = findById(userId);
         UserVo userVo = new UserVo();
@@ -58,6 +57,23 @@ public class LitemallUserService {
         if (!StringUtils.isEmpty(mobile)) {
             criteria.andMobileEqualTo(mobile);
         }
+        criteria.andDeletedEqualTo(false);
+
+        if (!StringUtils.isEmpty(sort) && !StringUtils.isEmpty(order)) {
+            example.setOrderByClause(sort + " " + order);
+        }
+
+        PageHelper.startPage(page, size);
+        return userMapper.selectByExample(example);
+    }
+
+    public List<LitemallUser> queryUserId(List userId, Integer page, Integer size, String sort, String order) {
+        LitemallUserExample example = new LitemallUserExample();
+        LitemallUserExample.Criteria criteria = example.createCriteria();
+        if (userId != null) {
+            criteria.andIdIn(userId);
+        }
+
         criteria.andDeletedEqualTo(false);
 
         if (!StringUtils.isEmpty(sort) && !StringUtils.isEmpty(order)) {

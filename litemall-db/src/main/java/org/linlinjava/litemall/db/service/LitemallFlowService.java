@@ -44,12 +44,13 @@ public class LitemallFlowService {
         }
         return litemallFlowMapper.selectOneByExample(example);
     }
-    public List<LitemallFlow> findByUserId(Integer userId){
+    public List<LitemallFlow> findByUserId(Integer userId,Integer page,Integer limit){
         LitemallFlowExample example = new LitemallFlowExample();
         LitemallFlowExample.Criteria criteria = example.createCriteria();
         if (!StringUtils.isEmpty(userId)){
             criteria.andUserIdEqualTo(userId.toString());
         }
+        PageHelper.startPage(page,limit);
         return litemallFlowMapper.selectByExample(example);
     }
 }

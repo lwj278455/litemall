@@ -8,6 +8,7 @@ import com.github.binarywang.wxpay.constant.WxPayConstants;
 import com.github.binarywang.wxpay.exception.WxPayException;
 import com.github.binarywang.wxpay.service.WxPayService;
 
+import com.github.pagehelper.util.StringUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -32,7 +33,7 @@ import org.springframework.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
+import java.io.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.security.KeyManagementException;
@@ -360,16 +361,15 @@ public class WxOrderService {
         order.setActualPrice(price);//实付费用
         orderService.add(order);
         orderId = order.getId();
-        if (!StringUtils.isEmpty(integralprice) || integralprice.compareTo(BigDecimal.ZERO) != 0) {
-            LitemallFlow flow = new LitemallFlow();
-            flow.setFlowNum(orderSn);
-            flow.setPaidIntegral(userIntegr.toString());
-            flow.setTotalIntegral(total_Integral.toString());
-            flow.setPaidMethod(0);
-            flow.setPaidMethod(user.getId());
-            flow.setCreateTime(LocalDateTime.now());
-            litemallFlowService.add(flow);
-        }
+//        if (!StringUtils.isEmpty(integralprice) || integralprice.compareTo(BigDecimal.ZERO) != 0) {
+//            LitemallFlow flow = new LitemallFlow();
+//            flow.setFlowNum(orderSn);
+//            flow.setPaidIntegral(userIntegr.toString());
+//            flow.setTotalIntegral(total_Integral.toString());
+//            flow.setPaidMethod("消费");
+//            flow.setCreateTime(LocalDateTime.now());
+//            litemallFlowService.add(flow);
+//        }
         LitemallOrderGoods orderGoods = new LitemallOrderGoods();
         orderGoods.setOrderId(orderId);//订单表id
         orderGoods.setGoodsId(goodsId);
@@ -432,6 +432,9 @@ public class WxOrderService {
      */
     @Transactional
     public Object isAgent(Integer userId) {
+        if (StringUtils.isEmpty(userId)){
+            return ResponseUtil.unlogin();
+        }
         LitemallUser user = userService.findById(userId);
         return ResponseUtil.ok(user.getUserIntegr());
     }
@@ -472,7 +475,7 @@ public class WxOrderService {
         LitemallOrderGoods litemallOrderGoods = orderGoodsService.findById(rgid);
 
         LitemallOrder order = orderService.findById(litemallOrderGoods.getOrderId());
-        order.setDealStatus((short)2);
+        order.setDealStatus((short) 2);
         orderService.updateWithOptimisticLocker(order);
         LitemallGoods goods = goodsService.findById(litemallOrderGoods.getGoodsId());
         //获取订单地址
@@ -498,17 +501,19 @@ public class WxOrderService {
         orderService.add(neworder);
         orderId = order.getId();
         prcie = neworder.getGoodsPrice();
-
+        LitemallUser user = userService.findById(userId);
         if (!StringUtils.isEmpty(order.getUserId())) {
             LitemallCash litemallCash = new LitemallCash();
             litemallCash.setUserId(order.getUserId());
             litemallCash.setCashNum(PayUtil.create_timestamp());
             BigDecimal paidprice = prcie.multiply(new BigDecimal(0.8)).setScale(2, RoundingMode.HALF_UP);
             litemallCash.setPaidAmount(paidprice);
-            litemallCash.setType("卖出商品");
+            litemallCash.setRemBalance(user.getUserPrice());
+            litemallCash.setType("收益");
+
             cashService.add(litemallCash);
 
-            LitemallUser user = userService.findById(userId);
+
             user.setUserPrice(user.getUserPrice().add(paidprice));
             userService.updateById(user);
         }
@@ -630,7 +635,7 @@ public class WxOrderService {
             Integer integral = user.getUserIntegr() + Integer.valueOf(flow.getPaidIntegral());
 
             flow.setCreateTime(LocalDateTime.now());
-            flow.setPaidMethod(1);
+            flow.setPaidMethod("获取");
             flow.setTotalIntegral(integral.toString());
             flow.setPaidIntegral(flow.getPaidIntegral());
             flow.setFlowNum(PayUtil.create_timestamp());
@@ -742,38 +747,41 @@ public class WxOrderService {
      * @return 操作结果
      */
     @Transactional
-    public Object payNotify(HttpServletRequest request, HttpServletResponse response) {
-        String xmlResult = null;
-        try {
-            xmlResult = IOUtils.toString(request.getInputStream(), request.getCharacterEncoding());
-        } catch (IOException e) {
-            e.printStackTrace();
-            return WxPayNotifyResponse.fail(e.getMessage());
+    public Object payNotify(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        System.out.println("进入回调方法");
+        BufferedReader br = new BufferedReader(new InputStreamReader(request.getInputStream()));
+        String line = null;
+        StringBuilder sb = new StringBuilder();
+        while ((line = br.readLine()) != null) {
+
+            sb.append(line);
+        }
+        String notityXml = sb.toString();
+        String resXml = "";
+        Map map = XmlUtil.doXMLParse(notityXml);
+        System.out.println(map);
+        if (!map.get("result_code").toString().equals("SUCCESS")){
+            System.out.println("失败"+notityXml);
+            resXml = "<xml>" + "<return_code><![CDATA[FAIL]]></return_code>"
+                    + "<return_msg><![CDATA[报文为空]]></return_msg>" + "</xml> ";
+            return resXml;
         }
 
-        WxPayOrderNotifyResult result = null;
-        try {
-            result = wxPayService.parseOrderNotifyResult(xmlResult);
 
-            if (!WxPayConstants.ResultCode.SUCCESS.equals(result.getResultCode())) {
-                logger.error(xmlResult);
-                throw new WxPayException("微信通知支付失败！");
-            }
-            if (!WxPayConstants.ResultCode.SUCCESS.equals(result.getReturnCode())) {
-                logger.error(xmlResult);
-                throw new WxPayException("微信通知支付失败！");
-            }
-        } catch (WxPayException e) {
-            e.printStackTrace();
-            return WxPayNotifyResponse.fail(e.getMessage());
-        }
-
-        logger.info("处理腾讯支付平台的订单支付");
-        logger.info(result);
-
-        String orderSn = result.getOutTradeNo();
-        String payId = result.getTransactionId();
+        String orderSn = map.get("out_trade_no").toString();
+        String payId = map.get("transaction_id").toString();
+        String total_fee = map.get("total_fee").toString();
         if (orderSn.substring(0, 1).equals("d")) {
+            if (Integer.valueOf(total_fee)<200){
+                List<LitemallCash> cashList = cashService.querySelectiveOrderNo(orderSn);
+                LitemallCash cash = new LitemallCash();
+                cash.setId(cashList.get(0).getId());
+                cash.setStatus("0");
+                cashService.updateById(cash);
+                LitemallUser user = userService.findById(cashList.get(0).getId().intValue());
+                user.setUserLevel((byte)0);
+                userService.updateById(user);
+            }
             List<LitemallCash> cashList = cashService.querySelectiveOrderNo(orderSn);
             LitemallCash cash = new LitemallCash();
             cash.setId(cashList.get(0).getId());
@@ -786,8 +794,8 @@ public class WxOrderService {
             user.setUserIntegr(Integer.valueOf(integer.toString()));
             userService.updateById(user);
         } else {
-            // 分转化成元
-            String totalFee = BaseWxPayResult.fenToYuan(result.getTotalFee());
+            // 分转化成元TotalFee
+            String totalFee = BaseWxPayResult.fenToYuan(Integer.valueOf(map.get("total_fee").toString()));
             LitemallOrder order = orderService.findBySn(orderSn);
             if (order == null) {
                 return WxPayNotifyResponse.fail("订单不存在 sn=" + orderSn);
@@ -825,19 +833,19 @@ public class WxOrderService {
                         flow.setPaidIntegral(order.getIntegralPrice().multiply(new BigDecimal(100)).toString());
                         LitemallUser user = userService.findById(order.getUserId());
                         flow.setTotalIntegral(user.getUserIntegr().toString());
-                        flow.setPaidMethod(0);
+                        flow.setPaidMethod("消费");
                         flow.setUserId(order.getUserId().toString());
                         litemallFlowService.add(flow);
                     }
                 }
-
-                // 如果updated是0，那么数据库更新失败
-                if (updated == 0) {
-                    return WxPayNotifyResponse.fail("更新数据已失效");
-                }
             }
         }
-        return WxPayNotifyResponse.success("处理成功!");
+        System.out.println("成功"+notityXml);
+        //注意要判断微信支付重复回调，支付成功后微信会重复的进行回调
+        //通知微信服务器已经支付成功
+        resXml = "<xml>" + "<return_code><![CDATA[SUCCESS]]></return_code>"
+                + "<return_msg><![CDATA[OK]]></return_msg>" + "</xml> ";
+        return resXml;
     }
 
     /**

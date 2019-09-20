@@ -56,6 +56,8 @@ public class WxHomeController {
     @Autowired
     private LitemallOrderGoodsService orderGoodsService;
 
+    @Autowired
+    private  LitemallNoticeService noticeService;
     private final static ArrayBlockingQueue<Runnable> WORK_QUEUE = new ArrayBlockingQueue<>(9);
 
     private final static RejectedExecutionHandler HANDLER = new ThreadPoolExecutor.CallerRunsPolicy();
@@ -162,5 +164,9 @@ public class WxHomeController {
         }
         return categoryList;
     }
-
+    @GetMapping("notice")
+    public Object notice(){
+        return ResponseUtil.ok(noticeService.list());
+    }
+    
 }

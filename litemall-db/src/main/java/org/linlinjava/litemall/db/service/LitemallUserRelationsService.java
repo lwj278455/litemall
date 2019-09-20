@@ -6,10 +6,12 @@ import org.linlinjava.litemall.db.domain.LitemallUserRelationsExample;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import javax.annotation.Resource;
 import java.util.List;
 
 @Service
 public class LitemallUserRelationsService {
+    @Resource
     private LitemallUserRelationsMapper userRelationsMapper;
 
     public List<LitemallUserRelations> findByChildid(String childid) {
@@ -18,11 +20,17 @@ public class LitemallUserRelationsService {
         if (!StringUtils.isEmpty(childid)){
             criteria.andChildidEqualTo(Long.valueOf(childid));
         }
-        List<LitemallUserRelations> userRelationsList = userRelationsMapper.selectByExample(example);
-
-        return userRelationsList;
+        return userRelationsMapper.selectByExample(example);
     }
 
+    public List<LitemallUserRelations> findByUserId(String userId) {
+        LitemallUserRelationsExample example = new LitemallUserRelationsExample();
+        LitemallUserRelationsExample.Criteria criteria = example.createCriteria();
+        if (!StringUtils.isEmpty(userId)){
+            criteria.andUseridEqualTo(Long.valueOf(userId));
+        }
+        return userRelationsMapper.selectByExample(example);
+    }
     public void add(LitemallUserRelations userRelations){
         userRelationsMapper.insertSelective(userRelations);
     }

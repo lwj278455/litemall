@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
+import java.util.List;
+
 @Service
 public class LitemallAuditService {
     @Resource
@@ -21,6 +23,23 @@ public class LitemallAuditService {
         }
         return auditMapper.selectOneByExample(example);
     }
+    public LitemallAudit findById(Integer id){
+        LitemallAuditExample example = new LitemallAuditExample();
+        LitemallAuditExample.Criteria criteria = example.createCriteria();
+        if (!StringUtils.isEmpty(id)){
+            criteria.andIdEqualTo(id);
+        }
+        return auditMapper.selectOneByExample(example);
+    }
+    public List<LitemallAudit> findByuserName(String username){
+        LitemallAuditExample example = new LitemallAuditExample();
+        LitemallAuditExample.Criteria criteria = example.createCriteria();
+        if (!StringUtils.isEmpty(username)){
+            criteria.andUserNameLike("%"+username+"%");
+        }
+        return auditMapper.selectByExample(example);
+    }
+
 
     public int add(LitemallAudit audit){
         return auditMapper.insert(audit);

@@ -18,6 +18,7 @@ public class LitemallCashService {
 
 
     public int add(LitemallCash litemallCash) {
+        litemallCash.setStatus("1");
         litemallCash.setCreated(LocalDateTime.now());
         return litemallCashMapper.insertSelective(litemallCash);
     }
@@ -51,12 +52,13 @@ public class LitemallCashService {
         return litemallCashMapper.selectByExample(example);
     }
 
-    public List<LitemallCash> findByUserId(Integer userId) {
+    public List<LitemallCash> findByUserId(Integer userId,Integer page,Integer limit) {
         LitemallCashExample example = new LitemallCashExample();
         LitemallCashExample.Criteria criteria = example.createCriteria();
         if (!StringUtils.isEmpty(userId)){
             criteria.andUserIdEqualTo(userId);
         }
+        PageHelper.startPage(page, limit);
         return litemallCashMapper.selectByExample(example);
     }
 }

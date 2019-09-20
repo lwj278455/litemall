@@ -5,7 +5,8 @@ spring:
     encoding: UTF-8
 
 server:
-  port: 8082
-
+  port: 8083
+  servlet:
+    context-path: /litemall/
 logging:
   config: classpath:logback-spring.xml

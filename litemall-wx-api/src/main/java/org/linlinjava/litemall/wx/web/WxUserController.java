@@ -75,6 +75,9 @@ public class WxUserController {
      */
     @PostMapping("/autonym")
     public Object autonym(@LoginUser Integer userId, @RequestBody String body) {
+        if (StringUtils.isEmpty(userId)) {
+            return ResponseUtil.unlogin();
+        }
         String alipay_number = JacksonUtil.parseString(body, "alipay_number");
         String user_name = JacksonUtil.parseString(body, "user_name");
         List<String> picUrls = JacksonUtil.parseStringList(body, "picUrls");
@@ -108,7 +111,7 @@ public class WxUserController {
     @GetMapping("identity")
     public Object findIdentity(@LoginUser Integer userId) {
         if (StringUtils.isEmpty(userId)) {
-            return ResponseUtil.badArgumentValue();
+            return ResponseUtil.unlogin();
         }
         return ResponseUtil.ok(auditService.findByUserId(userId));
     }
@@ -123,7 +126,20 @@ public class WxUserController {
     @PostMapping("alipayfund")
     public Object alipayfund(@LoginUser Integer userId, @RequestBody String body) {
         String ampunt = JacksonUtil.parseString(body, "ampunt");
+        String passwd = JacksonUtil.parseString(body, "passwd");
+        if (StringUtils.isEmpty(userId)){
+            return ResponseUtil.unlogin();
+        }
+        if (StringUtils.isEmpty(passwd)||StringUtils.isEmpty(ampunt)){
+            return ResponseUtil.badArgumentValue();
+        }
         LitemallUser user = userService.findById(userId);
+        if (StringUtils.isEmpty(user.getPasswd())){
+            return ResponseUtil.fail(100,"请设置提现密码");
+        }
+        if (!passwd.equals(user.getPasswd())) {
+            return ResponseUtil.fail(403, "密码错误");
+        }
         if (StringUtils.isEmpty(user.getAlipayNumber()) || StringUtils.isEmpty(user.getUsername())) {
             return ResponseUtil.fail(201, "未实名制，无法提现");
         }
@@ -177,16 +193,18 @@ public class WxUserController {
      * @return
      */
     @GetMapping("/personal")
-    public Object personalLog(@LoginUser Integer userId) {
+    public Object personalLog(@LoginUser Integer userId, @RequestParam(defaultValue = "0") Integer page, @RequestParam(defaultValue = "10") Integer limit) {
         if (StringUtils.isEmpty(userId)) {
-            return ResponseUtil.badArgumentValue();
+            return ResponseUtil.unlogin();
         }
-        List<LitemallCash> cashList = cashService.findByUserId(userId);
+        List<LitemallCash> cashList = cashService.findByUserId(userId, page, limit);
         LitemallUser user = userService.findById(userId);
+        List<Map<String, Object>> list = new ArrayList<>();
         Map<String, Object> map = new HashMap<>();
         map.put("prcie", user.getUserPrice());
         map.put("cashList", cashList);
-        return ResponseUtil.ok(map);
+        list.add(map);
+        return ResponseUtil.okList(list, cashList);
     }
 
     /**
@@ -196,16 +214,18 @@ public class WxUserController {
      * @return
      */
     @GetMapping("/integral")
-    public Object integralLog(@LoginUser Integer userId) {
+    public Object integralLog(@LoginUser Integer userId, @RequestParam(defaultValue = "0") Integer page, @RequestParam(defaultValue = "10") Integer limit) {
         if (StringUtils.isEmpty(userId)) {
-            return ResponseUtil.badArgumentValue();
+            return ResponseUtil.unlogin();
         }
-        List<LitemallFlow> flowList = flowService.findByUserId(userId);
+        List<LitemallFlow> flowList = flowService.findByUserId(userId, page, limit);
         LitemallUser user = userService.findById(userId);
+        List<Map<String, Object>> list = new ArrayList<>();
         Map<String, Object> map = new HashMap<>();
         map.put("integral", user.getUserIntegr());
         map.put("flowList", flowList);
-        return ResponseUtil.ok(map);
+        list.add(map);
+        return ResponseUtil.okList(list, flowList);
     }
 
     /**
@@ -214,13 +234,27 @@ public class WxUserController {
      * @param userId
      * @return
      */
-    @GetMapping("share")
+    @GetMapping("/share")
     public Object share(@LoginUser Integer userId) {
+        if (StringUtils.isEmpty(userId)) {
+            return ResponseUtil.unlogin();
+        }
         LitemallUser user = userService.findById(userId);
-        if (user != null) {
+        if (user == null) {
             return ResponseUtil.badArgumentValue();
         }
-        return ResponseUtil.ok(user.getTicket());
+        return ResponseUtil.ok("https://mp.weixin.qq.com/cgi-bin/showqrcode?ticket="+user.getTicket());
     }
 
+    @PostMapping("/passwd")
+    public Object insertPasswd(@LoginUser Integer userId,@RequestBody String body) {
+        if (StringUtils.isEmpty(userId)) {
+            return ResponseUtil.unlogin();
+        }
+        LitemallUser user =  userService.findById(userId);
+        String passwd = JacksonUtil.parseString(body,"passwd");
+        user.setPassword(passwd);
+        userService.updateById(user);
+        return  ResponseUtil.ok();
+    }
 }

@@ -66,6 +66,7 @@ public class ResponseUtil {
             data.put("limit", page.getPageSize());
             data.put("pages", page.getPages());
         } else {
+
             data.put("total", list.size());
             data.put("page", 1);
             data.put("limit", list.size());

@@ -4,6 +4,7 @@ import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.db.service.LitemallDiscountService;
 import org.linlinjava.litemall.wx.annotation.LoginUser;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +27,9 @@ public class WxDiscountController {
     private LitemallDiscountService discountService;
     @GetMapping("myList")
     public Object getMyDiscountList(@LoginUser Integer userId){
+        if (StringUtils.isEmpty(userId)){
+            return ResponseUtil.unlogin();
+        }
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         Callable<List> discountListCall=()->discountService.selectListByUserId(userId);
         FutureTask<List> discountListTask=new FutureTask<>(discountListCall);
