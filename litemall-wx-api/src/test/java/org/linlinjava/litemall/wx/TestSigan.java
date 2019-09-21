@@ -20,6 +20,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
+import org.junit.Test;
 import org.linlinjava.litemall.wx.util.MD5Util;
 
 import java.io.IOException;
@@ -195,9 +196,10 @@ public class TestSigan {
     /**
      * 云代付
      *
-     * @param args
+     * @param
      */
-    public static void main(String[] args) {
+    @Test
+    public void yunDaiFu() {
         SortedMap<String, Object> map = new TreeMap<>();
         map.put("appid", "7d5e04aa-2488-4604-963e-d7ce20b36059"); //绑定appid
         map.put("channel", "wx");   //绑定付款类型
@@ -215,4 +217,31 @@ public class TestSigan {
 
     }
 
+    /**
+     * 免签支付
+     *
+     * @param
+     */
+    @Test
+    public void MianQian() {
+        SortedMap<String, Object> map = new TreeMap<>();
+        map.put("appid", "fe80984a-3f8b-4032-93bf-18ba9e3d05b9");
+        map.put("order_no", "A15165564684615");
+        map.put("url", "www.xxxkeji.com");
+        map.put("return_url", "www.xxxkeji.com");
+        map.put("remark", "123");
+        map.put("amount", "50");
+        map.put("type", "2");
+        map.put("code_type", "1");
+        System.out.println();
+        String sign = createSign(map);  //签名
+
+        map.put("sign", sign);
+
+        JSONObject json = new JSONObject(map);  //把map 转成json
+        System.out.println("json    =====" + json);
+        Object s = doPost("http://hrbhgbj.cn?freepay&route=/api/api/pay", json.toString()); //发送请求
+
+        System.out.println(s);
+    }
 }
