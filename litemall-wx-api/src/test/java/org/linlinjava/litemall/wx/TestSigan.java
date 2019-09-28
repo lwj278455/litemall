@@ -204,9 +204,9 @@ public class TestSigan {
         map.put("appid", "7d5e04aa-2488-4604-963e-d7ce20b36059"); //绑定appid
         map.put("channel", "wx");   //绑定付款类型
         map.put("order_no", "A509727867558287"); //绑定订单号
-        map.put("amount", "0.01"); //绑定金额
-        map.put("description", "123"); //绑定商品详情
-        map.put("recipient_openid", "oYwH80z5kzWCYKYxGjPzt9bbDypM");//绑定用户openid
+        map.put("amount", "0.01");  //绑定金额
+        map.put("description", "123");  //绑定商品详情
+        map.put("recipient_openid", "");    //绑定用户openid
         String sign = createSign(map);  //签名
         System.out.println(sign);
         map.put("sign", sign); //绑定签名
@@ -214,8 +214,8 @@ public class TestSigan {
         System.out.println("json    =====" + json);
         Object s = doPost("http://api.yundaifu.com/api/api/withdraw", json.toString()); //发送请求
         System.out.println(s);
-
     }
+
 
     /**
      * 免签支付
@@ -225,21 +225,23 @@ public class TestSigan {
     @Test
     public void MianQian() {
         SortedMap<String, Object> map = new TreeMap<>();
-        map.put("appid", "fe80984a-3f8b-4032-93bf-18ba9e3d05b9");
-        map.put("order_no", "A15165564684615");
-        map.put("url", "www.xxxkeji.com");
-        map.put("return_url", "www.xxxkeji.com");
-        map.put("remark", "123");
-        map.put("amount", "50");
-        map.put("type", "2");
-        map.put("code_type", "1");
+        map.put("appid", "fe80984a-3f8b-4032-93bf-18ba9e3d05b9");  // 商户appid
+        map.put("order_no", "A15165564684615"); //商户订单号
+        map.put("url", "http://%77%77%77%2E%78%78%78%6B%65%6A%69%2E%63%6F%6D/"); //支付回调地址
+        map.put("return_url", "http://%77%77%77%2E%78%78%78%6B%65%6A%69%2E%63%6F%6D/"); //支付成功跳转地址
+        map.put("remark", "123"); //详情信息
+        map.put("amount", "2"); //金额
+        map.put("type", "2"); //支付类型： 2 微信商户
+        map.put("code_type", "0"); //二维码类型 0.固定金额
+
         System.out.println();
         String sign = createSign(map);  //签名
 
         map.put("sign", sign);
 
         JSONObject json = new JSONObject(map);  //把map 转成json
-        System.out.println("json    =====" + json);
+
+        System.out.println("json=====" + json);
         Object s = doPost("http://hrbhgbj.cn?freepay&route=/api/api/pay", json.toString()); //发送请求
 
         System.out.println(s);

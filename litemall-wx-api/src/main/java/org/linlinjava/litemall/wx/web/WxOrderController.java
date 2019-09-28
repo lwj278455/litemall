@@ -80,8 +80,8 @@ public class WxOrderController {
     }
 
     @GetMapping("isDiscounts")
-    public Object isDiscounts(BigDecimal retailprice){
-        Object discount = wxOrderService.isDiscounts(retailprice);
+    public Object isDiscounts(@LoginUser Integer userId,BigDecimal retailprice){
+        Object discount = wxOrderService.isDiscounts(userId,retailprice);
         return discount;
     }
 

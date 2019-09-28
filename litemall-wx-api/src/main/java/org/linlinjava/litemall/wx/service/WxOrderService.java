@@ -296,16 +296,17 @@ public class WxOrderService {
         BigDecimal goodsprice = goodsProduct.getPrice();//把商品价格转换成big类型
         BigDecimal price = BigDecimal.ZERO;//真正付的价格
         BigDecimal couponprice = BigDecimal.ZERO;//优惠价格
-
+        System.out.println("进入提交订单接口"+userId);
         if (!StringUtils.isEmpty(discountId) && discountId != 0) {//判断此人是否使用打折卡
             LitemallDiscount discount = discountService.selectEntityByDiscountId(discountId);  //获取打折卡的信息
             BigDecimal discuntPrice = discount.getDiscountPrice();//几折
             couponprice = goodsprice.multiply(discuntPrice);//商品折扣*真正付的价格=优惠价格
             discountService.delByDiscountId(discountId);//更新打折卡
-        } else if (number > 0 && StringUtils.isEmpty(discountId) || discountId == 0) {
+        } else if (number > 0 && StringUtils.isEmpty(discountId)) {
             for (int i = 0; number > i; i++) {
                 LitemallDiscount litemallDiscount = new LitemallDiscount();
-                litemallDiscount.setUserId(1);
+                System.out.println("添加优惠券userId++++++++++======"+userId);
+                litemallDiscount.setUserId(userId);
                 litemallDiscount.setDiscountName("二折卡");
                 litemallDiscount.setDiscountTag(goodsprice);
                 litemallDiscount.setAddTime(LocalDateTime.now());
@@ -445,8 +446,12 @@ public class WxOrderService {
      * @return
      */
     @Transactional
-    public Object isDiscounts(BigDecimal retailprice) {
-        List<LitemallDiscount> discountList = discountService.selectListByUserId(1);
+    public Object isDiscounts(Integer userId,BigDecimal retailprice) {
+        if (StringUtils.isEmpty(userId)){
+            return ResponseUtil.unlogin();
+        }
+        System.out.println("进入优惠卷接口==========="+userId);
+        List<LitemallDiscount> discountList = discountService.selectListByUserId(userId);
         LitemallDiscount discount = null;
         for (LitemallDiscount discounts : discountList) {
             if (discounts.getDiscountTag().compareTo(retailprice) == 0) {
@@ -772,27 +777,40 @@ public class WxOrderService {
         String payId = map.get("transaction_id").toString();
         String total_fee = map.get("total_fee").toString();
         if (orderSn.substring(0, 1).equals("d")) {
-            if (Integer.valueOf(total_fee)<200){
+            if (Double.parseDouble(BaseWxPayResult.fenToYuan(Integer.valueOf(map.get("total_fee").toString())))<200){
                 List<LitemallCash> cashList = cashService.querySelectiveOrderNo(orderSn);
                 LitemallCash cash = new LitemallCash();
                 cash.setId(cashList.get(0).getId());
                 cash.setStatus("0");
                 cashService.updateById(cash);
-                LitemallUser user = userService.findById(cashList.get(0).getId().intValue());
-                user.setUserLevel((byte)0);
+                LitemallUser user = userService.findById(cashList.get(0).getUserId().intValue());
+                user.setExperience((byte)1);
+                userService.updateById(user);
+            }else {
+                List<LitemallCash> cashList = cashService.querySelectiveOrderNo(orderSn);
+                LitemallCash cash = new LitemallCash();
+                cash.setId(cashList.get(0).getId());
+                cash.setStatus("0");
+                cashService.updateById(cash);
+                LitemallUser userInfo = userService.findById(cashList.get(0).getUserId());
+                LitemallUser user = new LitemallUser();
+                user.setId(cashList.get(0).getUserId());
+                BigDecimal integer = cashList.get(0).getPaidAmount().add(BigDecimal.valueOf(userInfo.getUserIntegr()));
+                user.setUserIntegr(Integer.valueOf(integer.toString()));
+                switch ( BaseWxPayResult.fenToYuan(Integer.valueOf(map.get("total_fee").toString()))){
+                    case "10000.00":
+                        user.setUserLevel((byte)2);
+                        break;
+                    case "30000.00":
+                        user.setUserLevel((byte)1);
+                        break;
+                    case "90000.00":
+                        user.setUserLevel((byte)0);
+                        break;
+                }
                 userService.updateById(user);
             }
-            List<LitemallCash> cashList = cashService.querySelectiveOrderNo(orderSn);
-            LitemallCash cash = new LitemallCash();
-            cash.setId(cashList.get(0).getId());
-            cash.setStatus("0");
-            cashService.updateById(cash);
-            LitemallUser userInfo = userService.findById(cashList.get(0).getUserId());
-            LitemallUser user = new LitemallUser();
-            user.setId(cashList.get(0).getUserId());
-            BigDecimal integer = cashList.get(0).getPaidAmount().add(BigDecimal.valueOf(userInfo.getUserIntegr()));
-            user.setUserIntegr(Integer.valueOf(integer.toString()));
-            userService.updateById(user);
+
         } else {
             // 分转化成元TotalFee
             String totalFee = BaseWxPayResult.fenToYuan(Integer.valueOf(map.get("total_fee").toString()));

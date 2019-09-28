@@ -35,7 +35,6 @@ public class WxUserController {
 
     @Autowired
     private StorageService storageService;
-
     @Autowired
     private LitemallUserService userService;
     @Autowired
@@ -222,7 +221,7 @@ public class WxUserController {
         LitemallUser user = userService.findById(userId);
         List<Map<String, Object>> list = new ArrayList<>();
         Map<String, Object> map = new HashMap<>();
-        map.put("integral", user.getUserIntegr());
+        map.put("integral", user.getUserIntegr()==-1?0:user.getUserIntegr());
         map.put("flowList", flowList);
         list.add(map);
         return ResponseUtil.okList(list, flowList);

@@ -16,6 +16,7 @@
     <result column="user_name" jdbcType="VARCHAR" property="userName"/>
     <result column="alipay_number" jdbcType="VARCHAR" property="alipayNumber"/>
     <result column="ticket" jdbcType="VARCHAR" property="ticket"/>
+    <result column="experience" jdbcType="TINYINT" property="experience" />
     <result column="user_level" jdbcType="TINYINT" property="userLevel" />
     <result column="user_integr" jdbcType="TINYINT" property="userIntegr" />
     <result column="nickname" jdbcType="VARCHAR" property="nickname" />
@@ -468,6 +469,9 @@
       </if>
       <if test="lastLoginIp != null">
         last_login_ip = #{lastLoginIp,jdbcType=VARCHAR},
+      </if>
+      <if test="experience != null">
+        experience = #{experience,jdbcType=TINYINT},
       </if>
       <if test="userLevel != null">
         user_level = #{userLevel,jdbcType=TINYINT},

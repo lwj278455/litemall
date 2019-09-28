@@ -138,6 +138,7 @@ public class WxAuthController {
         if (body == null) {
             return ResponseUtil.badArgument();
         }
+        System.out.println("进入登录页面接口");
         String code = JacksonUtil.parseString(body, "code");
         String responseStr = wxAuthorization.getAccess_token(code);
         String access_token = JacksonUtil.parseString(responseStr, "access_token");
@@ -156,7 +157,7 @@ public class WxAuthController {
             user.setWeixinOpenid(userInfo.getOpenid());
             user.setunionid(userInfo.getUnionid());
             userService.updateById(user);
-            return ResponseUtil.ok(UserTokenManager.generateToken(user.getId()));
+            token = UserTokenManager.generateToken(user.getId());
         } else {
             LitemallUser litemallUser = new LitemallUser();
             litemallUser.setGender(userInfo.getSex());
@@ -180,13 +181,16 @@ public class WxAuthController {
             HttpEntity responseEntity = response.getEntity();
             String s = EntityUtils.toString(responseEntity, "utf-8");
             String access = JacksonUtil.parseString(s, "access_token");
-            System.out.println(access);
+
+            System.out.println("获取jssdk++++++++++++++access_token"+access);
+            System.out.println("进入获取分享图片接口++++++++++++++++++++++++++++");
+            System.out.println("token+++++++++++++++++"+access_token);
             String uri = "https://api.weixin.qq.com/cgi-bin/qrcode/create?access_token=" + access;
             String jsonParam = "{\"action_name\": \"QR_LIMIT_SCENE\", \"action_info\": {\"scene\": {\"scene_id\": " + id + "}}}";
             ticketresqut = JsApiShare.doPostWithJson(uri, jsonParam);
-            System.out.println("返回信息:++++" + ticketresqut);
+            System.out.println("返回信息:+++++++++++++++++++++" + ticketresqut);
             String ticket = JacksonUtil.parseString(ticketresqut, "ticket");
-            System.out.println("ticket------" + ticket);
+            System.out.println("获取分享图片ticket++++++++++------" + ticket);
             LitemallUser userout = userService.findById(id);
             userout.setTicket(ticket);
             userService.updateById(userout);
