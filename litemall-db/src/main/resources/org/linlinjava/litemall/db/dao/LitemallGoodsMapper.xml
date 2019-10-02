@@ -859,7 +859,7 @@
     select g.*,rg.id rgid,rg.specifications specifications from litemall_order r,litemall_order_goods rg,litemall_goods g,litemall_goods_product p
     where r.deal_status=1 and r.id=rg.order_id and rg.goods_id =g.id and rg.product_id=p.id
     <if test="goodsId!=null">
-      and  r.id = ${goodsId}
+      and  rg.id = ${goodsId}
     </if>
     <if test="name!=null">
        and  g.`name` like concat('%','${name}','%')

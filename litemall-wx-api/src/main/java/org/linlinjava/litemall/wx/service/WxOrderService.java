@@ -24,6 +24,7 @@ import org.linlinjava.litemall.db.util.OrderHandleOption;
 import org.linlinjava.litemall.db.util.OrderUtil;
 import org.linlinjava.litemall.wx.util.*;
 import org.linlinjava.litemall.wx.util.WxOrderResultEntity;
+import org.linlinjava.litemall.wx.vo.Sign;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -117,6 +118,9 @@ public class WxOrderService {
     private LitemallGoodsSpecificationService goodsSpecificationService;
     @Autowired
     private LitemallGoodsProductService goodsProductService;
+    @Autowired
+    private LitemallUserRelationsService userRelationsService;
+
     @Value("${litemall.wx.app-id}")
     private String APP_ID = "";
     @Value("${litemall.wx.key}")
@@ -217,14 +221,12 @@ public class WxOrderService {
         if (userId == null) {
             return ResponseUtil.unlogin();
         }
+
         // 订单信息
         LitemallOrder order = orderService.findById(orderId);
 
         if (null == order) {
             return ResponseUtil.fail(ORDER_UNKNOWN, "订单不存在");
-        }
-        if (!order.getUserId().equals(userId)) {
-            return ResponseUtil.fail(ORDER_INVALID, "不是当前用户的订单");
         }
         Map<String, Object> orderVo = new HashMap<String, Object>();
         orderVo.put("id", order.getId());
@@ -296,13 +298,15 @@ public class WxOrderService {
         BigDecimal goodsprice = goodsProduct.getPrice();//把商品价格转换成big类型
         BigDecimal price = BigDecimal.ZERO;//真正付的价格
         BigDecimal couponprice = BigDecimal.ZERO;//优惠价格
-        System.out.println("进入提交订单接口"+userId);
+        System.out.println("进入提交订单接口===userId========="+userId);
+        System.out.println("进入提交订单接口==========discountId========"+discountId);
+        System.out.println("进入提交订单接口==========number==========="+number);
         if (!StringUtils.isEmpty(discountId) && discountId != 0) {//判断此人是否使用打折卡
             LitemallDiscount discount = discountService.selectEntityByDiscountId(discountId);  //获取打折卡的信息
             BigDecimal discuntPrice = discount.getDiscountPrice();//几折
             couponprice = goodsprice.multiply(discuntPrice);//商品折扣*真正付的价格=优惠价格
             discountService.delByDiscountId(discountId);//更新打折卡
-        } else if (number > 0 && StringUtils.isEmpty(discountId)) {
+        } else if (number > 0 && StringUtils.isEmpty(discountId)||discountId==0) {
             for (int i = 0; number > i; i++) {
                 LitemallDiscount litemallDiscount = new LitemallDiscount();
                 System.out.println("添加优惠券userId++++++++++======"+userId);
@@ -471,6 +475,7 @@ public class WxOrderService {
         if (body == null) {
             return ResponseUtil.badArgument();
         }
+        System.out.println("进入支付=====");
         Integer addressId = JacksonUtil.parseInteger(body, "addressId"); //获取地址id
         Integer rgid = JacksonUtil.parseInteger(body, "Rgid");//订单商品id
         //判断如果信息为空返回参数错误
@@ -504,6 +509,7 @@ public class WxOrderService {
         neworder.setOrderPrice(order.getOrderPrice());//订单价格
         neworder.setActualPrice(order.getActualPrice());//实付费用
         orderService.add(neworder);
+
         orderId = order.getId();
         prcie = neworder.getGoodsPrice();
         LitemallUser user = userService.findById(userId);
@@ -511,14 +517,11 @@ public class WxOrderService {
             LitemallCash litemallCash = new LitemallCash();
             litemallCash.setUserId(order.getUserId());
             litemallCash.setCashNum(PayUtil.create_timestamp());
-            BigDecimal paidprice = prcie.multiply(new BigDecimal(0.8)).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal paidprice = prcie.multiply(new BigDecimal(0.78)).setScale(2, RoundingMode.HALF_UP);
             litemallCash.setPaidAmount(paidprice);
             litemallCash.setRemBalance(user.getUserPrice());
             litemallCash.setType("收益");
-
             cashService.add(litemallCash);
-
-
             user.setUserPrice(user.getUserPrice().add(paidprice));
             userService.updateById(user);
         }
@@ -536,7 +539,7 @@ public class WxOrderService {
         orderGoodsService.add(orderGoods);
 
         Map map = null;
-        String orderResult = prepay(userId, prcie, orderId, request).toString();
+        String orderResult = prepay(userId, prcie, neworder.getId(), request).toString();
         if (orderResult == null || StringUtils.isEmpty(orderResult)) {
             map = new HashMap();
             map.put("403", "调用下单接口失败");
@@ -561,15 +564,17 @@ public class WxOrderService {
         orderEntity.setTimeStamp(timeStamp);
         orderEntity.setSignType("MD5");
         String paySign = null;
+
         try {
             paySign = PayUtil.generateSignature(orderEntity);
             System.out.println("支付签名" + paySign);
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         }
+
         Map data = new HashMap();
         data.put("nonce_str", map.get("nonce_str"));
-        data.put("package", orderEntity.get_package());
+        data.put("package",  orderEntity.get_package());
         data.put("appId", appId);
         data.put("timeStamp", timeStamp);
         data.put("signType", "MD5");
@@ -685,8 +690,6 @@ public class WxOrderService {
 
         String productName = "SweetCity";
         int number = (int) ((Math.random() * 9) * 1000);//随机数
-//        DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");//时间
-//        String orderNumber = dateFormat.format(new Date()) + number;
         String openId = user.getWeixinOpenid();
         WxOrderEntity orderEntity = new WxOrderEntity();
 
@@ -716,6 +719,7 @@ public class WxOrderService {
         String xml = null;
         try {
             xml = WxAuthorization.sendPost("https://api.mch.weixin.qq.com/pay/unifiedorder", orderEntity);
+            System.out.println("支付获取返回结果"+xml);
         } catch (IOException e) {
             e.printStackTrace();
         } catch (UnrecoverableKeyException e) {
@@ -771,8 +775,6 @@ public class WxOrderService {
                     + "<return_msg><![CDATA[报文为空]]></return_msg>" + "</xml> ";
             return resXml;
         }
-
-
         String orderSn = map.get("out_trade_no").toString();
         String payId = map.get("transaction_id").toString();
         String total_fee = map.get("total_fee").toString();
@@ -786,31 +788,117 @@ public class WxOrderService {
                 LitemallUser user = userService.findById(cashList.get(0).getUserId().intValue());
                 user.setExperience((byte)1);
                 userService.updateById(user);
+
+                List<LitemallUserRelations> userRelationsList = userRelationsService.findByChildid(user.getId().toString());
+                if (!StringUtils.isEmpty(userRelationsList)&&userRelationsList.size()!=0){
+                    LitemallUser newuser =  userService.findById(userRelationsList.get(0).getUserid().intValue());
+                    BigDecimal userPrice = BigDecimal.ONE.multiply(new BigDecimal("0.3"));
+                    newuser.setUserPrice(userPrice.add(newuser.getUserPrice()));
+                    userService.updateById(newuser);
+                    LitemallCash litemallCash = new LitemallCash();
+                    litemallCash.setUserId(userRelationsList.get(0).getUserid().intValue());
+                    litemallCash.setStatus("0");
+                    litemallCash.setRemBalance(newuser.getUserPrice());
+                    litemallCash.setPaidAmount(userPrice);
+                    litemallCash.setType("下级充值代理");
+                    litemallCash.setCashNum(PayUtil.create_timestamp());
+                    cashService.add(litemallCash);
+                    List<LitemallUserRelations> newuserRelationsList = userRelationsService.findByChildid(newuser.getId().toString());
+                    if (!StringUtils.isEmpty(newuserRelationsList)&&newuserRelationsList.size()!=0){
+                        LitemallUser seconduser =  userService.findById(newuserRelationsList.get(0).getUserid().intValue());
+                        BigDecimal newuserPrice = BigDecimal.ONE.multiply(new BigDecimal("0.2"));
+                        seconduser.setUserPrice(newuserPrice.add(seconduser.getUserPrice()));
+                        userService.updateById(seconduser);
+                        LitemallCash litemallCash1 = new LitemallCash();
+                        litemallCash1.setUserId(newuserRelationsList.get(0).getUserid().intValue());
+                        litemallCash1.setStatus("0");
+                        litemallCash1.setRemBalance(seconduser.getUserPrice());
+                        litemallCash1.setPaidAmount(newuserPrice);
+                        litemallCash1.setType("下级充值代理");
+                        litemallCash1.setCashNum(PayUtil.create_timestamp());
+                        cashService.add(litemallCash1);
+                    }
+                }
+
             }else {
                 List<LitemallCash> cashList = cashService.querySelectiveOrderNo(orderSn);
                 LitemallCash cash = new LitemallCash();
                 cash.setId(cashList.get(0).getId());
                 cash.setStatus("0");
                 cashService.updateById(cash);
+
                 LitemallUser userInfo = userService.findById(cashList.get(0).getUserId());
-                LitemallUser user = new LitemallUser();
-                user.setId(cashList.get(0).getUserId());
+                userInfo.setId(cashList.get(0).getUserId());
                 BigDecimal integer = cashList.get(0).getPaidAmount().add(BigDecimal.valueOf(userInfo.getUserIntegr()));
-                user.setUserIntegr(Integer.valueOf(integer.toString()));
+                userInfo.setUserIntegr(Integer.valueOf(integer.toString()));
                 switch ( BaseWxPayResult.fenToYuan(Integer.valueOf(map.get("total_fee").toString()))){
                     case "10000.00":
-                        user.setUserLevel((byte)2);
+                        userInfo.setUserLevel((byte)2);
                         break;
                     case "30000.00":
-                        user.setUserLevel((byte)1);
+                        userInfo.setUserLevel((byte)1);
                         break;
                     case "90000.00":
-                        user.setUserLevel((byte)0);
+                        userInfo.setUserLevel((byte)0);
                         break;
                 }
-                userService.updateById(user);
-            }
+                userService.updateById(userInfo);
 
+                List<LitemallUserRelations> userRelationsList = userRelationsService.findByChildid(userInfo.getId().toString());
+
+                if (!StringUtils.isEmpty(userRelationsList)&&userRelationsList.size()!=0){
+                   LitemallUser user =  userService.findById(userRelationsList.get(0).getUserid().intValue());
+                   BigDecimal userPrice = BigDecimal.ZERO;
+                   switch (userInfo.getUserLevel()){
+                       case 0:
+                           userPrice = new BigDecimal("90000").multiply(new BigDecimal("0.30"));
+                           break;
+                       case 1:
+                           userPrice = new BigDecimal("30000").multiply(new BigDecimal("0.30"));
+                           break;
+                       case 2:
+                           userPrice = new BigDecimal("10000").multiply(new BigDecimal("0.30"));
+                           break;
+                   }
+                   user.setUserPrice(userPrice);
+                   userService.updateById(user);
+                    LitemallCash litemallCash = new LitemallCash();
+                    litemallCash.setUserId(userRelationsList.get(0).getUserid().intValue());
+                    litemallCash.setStatus("0");
+                    litemallCash.setRemBalance(user.getUserPrice());
+                    litemallCash.setPaidAmount(userPrice);
+                    litemallCash.setType("下级充值代理");
+                    litemallCash.setCashNum(PayUtil.create_timestamp());
+                    cashService.add(litemallCash);
+                   List<LitemallUserRelations> newuserRelationsList = userRelationsService.findByChildid(user.getId().toString());
+
+                   if (!StringUtils.isEmpty(newuserRelationsList)&&newuserRelationsList.size()!=0){
+                        LitemallUser newuser =  userService.findById(userRelationsList.get(0).getUserid().intValue());
+                        BigDecimal newuserPrice = BigDecimal.ZERO;
+                        switch (userInfo.getUserLevel()){
+                            case 0:
+                                newuserPrice = new BigDecimal("90000").multiply(new BigDecimal("0.20"));
+                                break;
+                            case 1:
+                                newuserPrice = new BigDecimal("30000").multiply(new BigDecimal("0.20"));
+                                break;
+                            case 2:
+                                newuserPrice = new BigDecimal("10000").multiply(new BigDecimal("0.20"));
+                                break;
+                        }
+                       newuser.setUserPrice(newuserPrice);
+                        userService.updateById(newuser);
+                       LitemallCash litemallCash1 = new LitemallCash();
+                       litemallCash1.setUserId(userRelationsList.get(0).getUserid().intValue());
+                       litemallCash1.setStatus("0");
+                       litemallCash1.setRemBalance(newuser.getUserPrice());
+                       litemallCash1.setPaidAmount(newuserPrice);
+                       litemallCash1.setType("下级充值代理");
+                       litemallCash1.setCashNum(PayUtil.create_timestamp());
+                       cashService.add(litemallCash1);
+                    }
+                }
+            }
         } else {
             // 分转化成元TotalFee
             String totalFee = BaseWxPayResult.fenToYuan(Integer.valueOf(map.get("total_fee").toString()));
@@ -832,6 +920,55 @@ public class WxOrderService {
             order.setPayId(payId);
             order.setPayTime(LocalDateTime.now());
             order.setOrderStatus(OrderUtil.STATUS_PAY);
+
+            List<LitemallUserRelations> userRelationsList = userRelationsService.findByChildid(order.getUserId().toString());
+            System.out.println("userRelationsList++++++++++========="+userRelationsList);
+            if (!StringUtils.isEmpty(userRelationsList)&&userRelationsList.size()!=0){
+                LitemallUser newuser =  userService.findById(userRelationsList.get(0).getUserid().intValue());
+                BigDecimal userPrice = new BigDecimal(totalFee).multiply(new BigDecimal("0.03"));
+                System.out.println("userPrice================="+userPrice);
+                newuser.setUserPrice(userPrice.add(newuser.getUserPrice()));
+                userService.updateById(newuser);
+
+                LitemallCash litemallCash = new LitemallCash();
+                litemallCash.setUserId(userRelationsList.get(0).getUserid().intValue());
+                litemallCash.setStatus("0");
+                litemallCash.setRemBalance(newuser.getUserPrice());
+                litemallCash.setPaidAmount(userPrice);
+                litemallCash.setType("下级充值代理");
+                litemallCash.setCashNum(PayUtil.create_timestamp());
+                cashService.add(litemallCash);
+
+                List<LitemallUserRelations> newuserRelationsList = userRelationsService.findByChildid(newuser.getId().toString());
+                System.out.println("newuserRelationsList========="+newuserRelationsList);
+                if (!StringUtils.isEmpty(newuserRelationsList)&&newuserRelationsList.size()!=0){
+                    LitemallUser seconduser =  userService.findById(newuserRelationsList.get(0).getUserid().intValue());
+                    BigDecimal newuserPrice = new BigDecimal(totalFee).multiply(new BigDecimal("0.02"));
+                    seconduser.setUserPrice(newuserPrice.add(seconduser.getUserPrice()));
+                    userService.updateById(seconduser);
+
+                    LitemallCash litemallCash1 = new LitemallCash();
+                    litemallCash1.setUserId(newuserRelationsList.get(0).getUserid().intValue());
+                    litemallCash1.setStatus("0");
+                    litemallCash1.setRemBalance(seconduser.getUserPrice());
+                    litemallCash1.setPaidAmount(newuserPrice);
+                    litemallCash1.setType("下级充值代理");
+                    litemallCash1.setCashNum(PayUtil.create_timestamp());
+                    cashService.add(litemallCash1);
+                }
+            }
+
+            if (order.getIntegralPrice().compareTo(BigDecimal.ZERO) == 1) {
+                LitemallFlow flow = new LitemallFlow();
+                flow.setCreateTime(LocalDateTime.now());
+                flow.setFlowNum(PayUtil.create_timestamp());
+                flow.setPaidIntegral(order.getIntegralPrice().multiply(new BigDecimal(100)).toString());
+                LitemallUser user = userService.findById(order.getUserId());
+                flow.setTotalIntegral(user.getUserIntegr().toString());
+                flow.setPaidMethod("消费");
+                flow.setUserId(order.getUserId().toString());
+                litemallFlowService.add(flow);
+            }
             if (orderService.updateWithOptimisticLocker(order) == 0) {
                 // 这里可能存在这样一个问题，用户支付和系统自动取消订单发生在同时
                 // 如果数据库首先因为系统自动取消订单而更新了订单状态；
@@ -844,17 +981,6 @@ public class WxOrderService {
                     order.setPayTime(LocalDateTime.now());
                     order.setOrderStatus(OrderUtil.STATUS_PAY);
                     updated = orderService.updateWithOptimisticLocker(order);
-                    if (order.getIntegralPrice().compareTo(BigDecimal.ZERO) == 1) {
-                        LitemallFlow flow = new LitemallFlow();
-                        flow.setCreateTime(LocalDateTime.now());
-                        flow.setFlowNum(PayUtil.create_timestamp());
-                        flow.setPaidIntegral(order.getIntegralPrice().multiply(new BigDecimal(100)).toString());
-                        LitemallUser user = userService.findById(order.getUserId());
-                        flow.setTotalIntegral(user.getUserIntegr().toString());
-                        flow.setPaidMethod("消费");
-                        flow.setUserId(order.getUserId().toString());
-                        litemallFlowService.add(flow);
-                    }
                 }
             }
         }

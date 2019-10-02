@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -17,7 +18,7 @@ import java.util.List;
  */
 @Service
 public class LitemallFeedbackService {
-    @Autowired
+    @Resource
     private LitemallFeedbackMapper feedbackMapper;
 
     public Integer add(LitemallFeedback feedback) {

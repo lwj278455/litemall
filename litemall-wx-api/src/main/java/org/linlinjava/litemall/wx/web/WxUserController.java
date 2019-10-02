@@ -151,8 +151,15 @@ public class WxUserController {
             return ResponseUtil.fail(103, "审核未通过");
         }
         try {
-            if (new BigDecimal(ampunt).compareTo(user.getUserPrice()) == -1) {
-                AlipayFund.aliPay(PayUtil.create_timestamp(), user.getAlipayNumber(), ampunt, user.getUsername());
+            if (new BigDecimal(ampunt).compareTo(user.getUserPrice()) == 1) {
+                if (user.getUserPrice().compareTo(new BigDecimal("100")) == -1){
+                    return   ResponseUtil.fail(404, "审核未通过");
+                }
+                user.setUserPrice(user.getUserPrice().subtract(new BigDecimal(ampunt)));
+
+                userService.updateById(user);
+                BigDecimal price = new BigDecimal(ampunt).multiply(new BigDecimal("0.97"));
+                AlipayFund.aliPay(PayUtil.create_timestamp(), user.getAlipayNumber(), price.toString(), user.getUsername());
                 LitemallCash cash = new LitemallCash();
                 cash.setType("提现");
                 cash.setPaidAmount(new BigDecimal(ampunt));

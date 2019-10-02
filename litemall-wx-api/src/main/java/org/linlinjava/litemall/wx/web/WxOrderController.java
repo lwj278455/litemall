@@ -58,7 +58,7 @@ public class WxOrderController {
      * @return 订单详情
      */
     @GetMapping("detail")
-    public Object detail(@LoginUser Integer userId, @NotNull Integer orderId) {
+    public Object detail(@LoginUser Integer userId,Integer orderId,Integer rgid) {
         return wxOrderService.detail(userId, orderId);
     }
 
@@ -79,6 +79,13 @@ public class WxOrderController {
         return wxOrderService.isAgent(userId);
     }
 
+    /**
+     * 判断是否拥有优惠券
+     *
+     * @param userId
+     * @param retailprice
+     * @return
+     */
     @GetMapping("isDiscounts")
     public Object isDiscounts(@LoginUser Integer userId,BigDecimal retailprice){
         Object discount = wxOrderService.isDiscounts(userId,retailprice);
